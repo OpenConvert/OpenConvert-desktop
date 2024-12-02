@@ -1,34 +1,65 @@
-# electron-app
+<h1 align="center">
+  <br>
+  <a href="https://github.com/openconvert"><img src="./icons/logo.png" width="200"></a>
+  <br>
+  OpenConvert
+  <br>
+  <br>
+</h1>
 
-An Electron application with Vue
+<h4 align="center">OpenConvert is your swiss army knife for file convertion</h4>
 
-## Recommended IDE Setup
+## Technologies
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar)
+**OpenConvert** written in purely **html,css,javascript** and Electronjs framework. Database [SQLite](https://sqlite.org)
+=======
 
-## Project Setup
+## Features
+- Convert multiple files at once
+- One click install in windows
+- Responsive Ui
+## Install
+- For executables checkout our [website](https://openconvert.github.io/website) or release [page](https://github.com/openconvert/openconvert-desktop/releases)
+- Linux users need to install [ffmpeg](https://ffmpeg.org) and [libvips](https://libvips.org)
+- Building from source code and documentation page available in a few days
+## Demo
 
-### Install
+<p align="center">
+  <img src="./icons/demo.gif"align="center">
+</p>
 
-```bash
+## Supported files
+- Image: png, jpg, gif, webp, jxl, bmp, avif, tiff
+- Video: mp4, mkv, avi, mov, gif, 3gp
+- Audio: aac, mp3, mp4a, wav
+## How to Contribute
+We need designer, tester and contributers. **OpenConvert** is prototype. If you want to contribute read [this](./CONTRIBUTING.md)
+### Install dependencies
+
+```
 $ npm install
 ```
 
-### Development
+### Run app
 
-```bash
-$ npm run dev
+```
+$ npm start
 ```
 
-### Build
+### Package app
 
-```bash
-# For windows
-$ npm run build:win
+To build for windows:
 
-# For macOS
-$ npm run build:mac
-
-# For Linux
-$ npm run build:linux
 ```
+$ npm run package-win
+```
+To build for linux:
+```
+npm run package-linux
+```
+
+
+
+## License
+
+GNU GPLv3
