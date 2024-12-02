@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base{
+    /* custom css code here */
+    .drag{
+       -webkit-app-region:drag;
+    }
+    .titlebar-button{
+       grid-row: 1 / span 1;
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       width: 100%;
+       height: 100%;
+       -webkit-app-region: no-drag;
+    }
+    .bg-image{
+      background-image: radial-gradient(circle, #352342, #2d203c, #261d35, #1f192f, #191628);
+   }
+   .custom-grid{
+      display: grid;
+      grid-template-columns: auto 184px;
+   }
+   .titlebar-span{
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.5;
+   }
+   .window-title{
+      grid-column: 1;
+      display: flex;
+      align-items: center;
+      margin-left: 8px;
+      overflow: hidden;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 1.1rem;
+   }
+ }
