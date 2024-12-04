@@ -4,7 +4,7 @@ import { onMounted } from 'vue'
 </script>
 <template>
    <div id="window-title" class="window-title">
-        <span class="titlebar-span">Electron quick start</span>
+        <span class="titlebar-span">OpenConvert(Alpha)</span>
       </div>
   <div id="window-controls" class="grid grid-cols-[46px_46px_46px_46px] absolute top-0 right-0 h-full">
     <div class="button titlebar-button col-start-1 col-end-1 hover:bg-[#ffffff1a] active:bg-[#ffffff33] rounded-md">

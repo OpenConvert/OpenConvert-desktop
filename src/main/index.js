@@ -1,7 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain,screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+//import icon from '../../resources/icon.png?asset'
 let mainWindow;
 function createMainWindow(){
   const primaryDisplay = screen.getPrimaryDisplay()
