@@ -4,11 +4,12 @@ import { onMounted } from 'vue'
 </script>
 <template>
    <div id="window-title" class="window-title">
-        <span class="titlebar-span">OpenConvert(Alpha)</span>
+    <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M11 5V19M6 8H8M6 11H8M6 14H8M6.2 19H17.8C18.9201 19 19.4802 19 19.908 18.782C20.2843 18.5903 20.5903 18.2843 20.782 17.908C21 17.4802 21 16.9201 21 15.8V8.2C21 7.0799 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V15.8C3 16.9201 3 17.4802 3.21799 17.908C3.40973 18.2843 3.71569 18.5903 4.09202 18.782C4.51984 19 5.07989 19 6.2 19Z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
       </div>
   <div id="window-controls" class="grid grid-cols-[46px_46px_46px_46px] absolute top-0 right-0 h-full">
     <div class="button titlebar-button col-start-1 col-end-1 hover:bg-[#ffffff1a] active:bg-[#ffffff33] rounded-md">
-      <svg width="20px" height="20px" id="Layer_2" fill='#fff' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45.33 32.79"><g id="Layer_1-2"><g><path class="cls-1" d="m37.51,0H1.83C.82,0,0,.82,0,1.83s.82,1.83,1.83,1.83h35.68c1.01,0,1.83-.82,1.83-1.83s-.82-1.83-1.83-1.83Z"/><path class="cls-1" d="m35.69,18.23v-3.65H7.83c-.97,0-1.8.83-1.8,1.8,0,1.02.83,1.85,1.8,1.85h27.86Z"/><path class="cls-1" d="m43.53,14.58h-4.19v3.65h4.19c1.02,0,1.8-.83,1.8-1.85s-.78-1.8-1.8-1.8Z"/><path class="cls-1" d="m37.51,29.14H1.83c-1.01,0-1.83.82-1.83,1.83s.82,1.83,1.83,1.83h35.68c1.01,0,1.83-.82,1.83-1.83s-.82-1.83-1.83-1.83Z"/></g></g></svg>
     </div>
           <div class="button select-none hover:bg-[#ffffff1a] active:bg-[##ffffff33] titlebar-button col-start-2 col-end-2 rounded-md" id="min-button">
             <svg fill="#fff" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 52 52" enable-background="new 0 0 52 52" xml:space="preserve" draggable="false"><g><path d="M50,48.5c0,0.8-0.7,1.5-1.5,1.5h-45C2.7,50,2,49.3,2,48.5v-3C2,44.7,2.7,44,3.5,44h45 c0.8,0,1.5,0.7,1.5,1.5V48.5z"/></g></svg>

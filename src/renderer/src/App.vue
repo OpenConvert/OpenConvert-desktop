@@ -1,7 +1,8 @@
 <script setup>
-import Navbar from './components/Navbar.vue'
+import Sidebar from './components/Sidebar.vue'
+import upload from './components/upload.vue';
 </script>
 
 <template>
- <Navbar></Navbar>
+<Sidebar></Sidebar>
 </template>
