@@ -4,25 +4,172 @@ const name = ref("John Doe");
 </script>
 
 <template>
-  <div class="flex">
-    <div class="flex h-screen w-16 flex-col justify-between border-e bg-white">
+ 
+    
+    <div class="flex h-screen w-16 flex-col justify-between border-e bg-[#31363F] border-gray-800">
       <div>
         <div class="inline-flex size-16 items-center justify-center">
           <span
-            class="grid size-10 place-content-center rounded-lg bg-gray-100 text-xs text-gray-600"
+            class="grid size-10 place-content-center rounded-lg bg-gray-800 text-xs text-gray-600"
           >
             L
           </span>
         </div>
   
-        <div class="border-t border-gray-100">
+        <div class="border-t border-gray-800">
           <div class="px-2">
-            <div class="py-4">
-              <a
-                href="#"
-                class="t group relative flex justify-center rounded bg-blue-50 px-2 py-1.5 text-blue-700"
-              >
-                <svg
+           
+  
+            <ul class="space-y-1 border-t border-gray-800 pt-4">
+              <li>
+                <a
+                  href="#"
+                  class="group relative flex justify-center rounded px-2 py-1.5 text-gray-500 hover:bg-[#ffffff1a] hover:text-gray-700"
+                >
+                  <svg height="20px" width="20px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+	 viewBox="0 0 511.995 511.995" xml:space="preserve">
+<g>
+	<path style="fill:#9AA6B2;" d="M188.952,47.403c-0.014-0.188-0.016-0.375-0.034-0.562c-0.051-0.512-0.141-1.022-0.227-1.533
+		c-0.042-0.248-0.07-0.496-0.121-0.743c-0.085-0.417-0.203-0.832-0.312-1.247c-0.088-0.34-0.166-0.681-0.27-1.016
+		c-0.105-0.335-0.236-0.667-0.357-1.001c-0.147-0.405-0.289-0.811-0.458-1.209c-0.029-0.068-0.048-0.14-0.079-0.209
+		c-0.112-0.256-0.25-0.49-0.369-0.742c-0.182-0.38-0.36-0.76-0.563-1.131c-0.2-0.363-0.419-0.707-0.633-1.058
+		c-0.14-0.227-0.261-0.461-0.41-0.683c-0.047-0.07-0.102-0.132-0.15-0.202c-0.262-0.383-0.545-0.748-0.825-1.112
+		c-0.182-0.236-0.358-0.475-0.549-0.703c-0.309-0.368-0.635-0.715-0.965-1.063c-0.194-0.205-0.382-0.414-0.582-0.61
+		c-0.338-0.33-0.69-0.638-1.046-0.945c-0.222-0.191-0.436-0.388-0.664-0.571c-0.348-0.278-0.706-0.535-1.067-0.791
+		c-0.261-0.185-0.515-0.375-0.782-0.549c-0.346-0.227-0.703-0.43-1.061-0.636c-0.299-0.174-0.596-0.352-0.903-0.512
+		c-0.349-0.182-0.709-0.341-1.067-0.506c-0.327-0.15-0.652-0.307-0.985-0.442c-0.372-0.15-0.751-0.275-1.131-0.406
+		c-0.33-0.113-0.658-0.236-0.995-0.335c-0.43-0.127-0.867-0.225-1.306-0.329c-0.245-0.057-0.486-0.135-0.735-0.185l-0.341-0.068
+		c-0.003,0-0.003,0-0.005,0L39.976,0.452c-12.61-2.507-24.858,5.68-27.365,18.286s5.678,24.858,18.286,27.365l71.348,14.191
+		C43.098,106.79,7.152,178.508,7.152,256.003c0,98.952,58.601,188.498,149.292,228.126c3.033,1.325,6.194,1.952,9.306,1.952
+		c8.969,0,17.516-5.215,21.338-13.96c5.146-11.777-0.228-25.497-12.007-30.643c-73.736-32.22-121.382-105.023-121.382-185.474
+		c0-63.788,29.972-122.744,79.134-160.5l-15.811,79.489c-2.507,12.606,5.678,24.858,18.286,27.365
+		c1.531,0.304,3.06,0.451,4.563,0.451c10.877,0,20.598-7.663,22.801-18.737l25.924-130.333c0.009-0.048,0.012-0.098,0.022-0.144
+		c0.096-0.495,0.158-0.995,0.222-1.496c0.031-0.245,0.076-0.489,0.099-0.735c0.051-0.555,0.068-1.116,0.081-1.676
+		c0.005-0.192,0.023-0.385,0.022-0.577C189.036,48.544,188.995,47.974,188.952,47.403z"/>
+	<path style="fill:#9AA6B2;" d="M504.844,256.003c0-98.952-58.601-188.496-149.292-228.126c-11.777-5.145-25.496,0.23-30.643,12.007
+		c-5.146,11.777,0.23,25.497,12.007,30.645c73.736,32.221,121.382,105.025,121.382,185.476c0,63.782-29.965,122.732-79.118,160.487
+		l15.811-79.484c2.507-12.606-5.678-24.858-18.284-27.367c-12.609-2.512-24.858,5.678-27.367,18.284L323.413,458.26
+		c-0.009,0.048-0.012,0.096-0.022,0.143c-0.098,0.5-0.161,1.004-0.225,1.51c-0.031,0.24-0.074,0.479-0.098,0.72
+		c-0.051,0.562-0.07,1.126-0.082,1.693c-0.003,0.186-0.022,0.374-0.02,0.56c0.002,0.576,0.04,1.153,0.087,1.73
+		c0.014,0.18,0.016,0.362,0.033,0.541c0.051,0.52,0.143,1.038,0.23,1.558c0.042,0.239,0.068,0.481,0.116,0.718
+		c0.087,0.427,0.208,0.85,0.32,1.275c0.087,0.329,0.161,0.661,0.264,0.985c0.105,0.348,0.242,0.69,0.368,1.035
+		c0.143,0.392,0.281,0.787,0.444,1.171c0.031,0.071,0.05,0.146,0.082,0.217c0.245,0.56,0.509,1.103,0.791,1.634
+		c0.003,0.003,0.003,0.005,0.005,0.008c0.338,0.633,0.707,1.237,1.095,1.828c0.031,0.047,0.054,0.096,0.085,0.143
+		c0.047,0.07,0.102,0.132,0.15,0.202c0.351,0.514,0.718,1.01,1.105,1.488c0.064,0.079,0.126,0.161,0.191,0.239
+		c0.925,1.112,1.939,2.126,3.035,3.033c0.098,0.081,0.197,0.16,0.295,0.239c0.47,0.377,0.951,0.734,1.446,1.071
+		c0.099,0.07,0.2,0.143,0.301,0.209c0.582,0.383,1.178,0.743,1.789,1.072c0.088,0.048,0.182,0.088,0.272,0.137
+		c0.517,0.268,1.041,0.517,1.575,0.746c0.183,0.078,0.366,0.154,0.551,0.228c0.529,0.211,1.064,0.405,1.609,0.577
+		c0.112,0.036,0.223,0.078,0.337,0.112c0.666,0.2,1.339,0.366,2.022,0.507c0.045,0.009,0.09,0.025,0.135,0.034l130.334,25.922
+		c1.531,0.304,3.06,0.451,4.563,0.451c10.877,0,20.598-7.663,22.801-18.737c2.507-12.606-5.678-24.858-18.286-27.365l-71.356-14.191
+		C468.9,405.208,504.844,333.494,504.844,256.003z"/>
+</g>
+</svg>
+  
+                  <span
+                    class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible"
+                  >
+                    Convert
+                  </span>
+                </a>
+              </li>
+  
+              <li>
+                <a
+                  href="#"
+                  class="group relative flex justify-center rounded px-2 py-1.5 text-gray-500 hover:bg-[#ffffff1a] hover:text-gray-700"
+                >
+                <svg fill='#9AA6B2' version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+	 width="30px" height="30px" viewBox="0 0 40 40" enable-background="new 0 0 40 40" xml:space="preserve">
+<g>
+	<path d="M20,21.569c-0.095,0-0.189-0.021-0.282-0.062L5.434,15.115C5.165,14.995,4.994,14.72,5,14.413
+		c0.006-0.303,0.191-0.578,0.46-0.683l14.286-5.681C19.828,8.017,19.913,8,20,8c0.086,0,0.172,0.017,0.254,0.049l14.285,5.679
+		c0.275,0.11,0.455,0.378,0.461,0.683c0.008,0.308-0.163,0.584-0.434,0.704L20.281,21.51C20.192,21.549,20.096,21.569,20,21.569
+		L20,21.569z M7.626,14.468l12.339,5.522l12.409-5.522L20,9.549L7.626,14.468z"/>
+	<path d="M5.434,20.49c-0.361-0.163-0.53-0.604-0.376-0.983c0.113-0.275,0.372-0.454,0.659-0.454c0.097,0,0.191,0.021,0.282,0.062
+		l13.967,6.249l14.037-6.249c0.092-0.042,0.186-0.062,0.283-0.062c0.286,0,0.544,0.177,0.656,0.454
+		c0.155,0.379-0.014,0.82-0.376,0.983L20,27.008L5.434,20.49z"/>
+	<path d="M5.434,25.48c-0.362-0.164-0.531-0.604-0.376-0.981c0.113-0.275,0.372-0.454,0.659-0.454c0.097,0,0.191,0.021,0.282,0.061
+		l13.967,6.25l14.037-6.25c0.09-0.039,0.186-0.061,0.283-0.061c0.286,0,0.544,0.179,0.656,0.454
+		c0.155,0.378-0.014,0.819-0.375,0.981L20,32L5.434,25.48z"/>
+</g>
+</svg>
+  
+                  <span
+                    class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible"
+                  >
+                    Categories
+                  </span>
+                </a>
+              </li>
+  
+              <li>
+                <a
+                  href="#"
+                  class="group relative flex justify-center rounded px-2 py-1.5 text-gray-500 hover:bg-[#ffffff1a] hover:text-gray-700"
+                >
+                <svg 
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="30"
+   height="30"
+   viewBox="0 0 30 30"
+   version="1.1"
+   id="svg822"
+   inkscape:version="0.92.4 (f8dce91, 2019-08-02)"
+   sodipodi:docname="addons.svg">
+  <defs
+     id="defs816" />
+
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-289.0625)">
+    <path
+       style="opacity:1;fill:#9AA6B2;fill-opacity:1;stroke:none;stroke-width:0.49999991;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 12,295.07422 a 2.5486216,2.1007805 0 0 0 -2.548828,2.09961 2.5486216,2.1007805 0 0 0 0.976562,1.65039 c 0.130889,0.19885 0.208985,0.42588 0.208985,0.65039 0,0.21505 -0.07725,0.41315 -0.205078,0.58789 H 7 c -1.108,0 -2,0.892 -2,2 v 3.43945 c 0.172404,0.12339 0.367129,0.19727 0.578125,0.19727 0.22451,0 0.451541,-0.0781 0.650391,-0.20899 a 2.1007805,2.5486216 0 0 1 1.65039,-0.97656 2.1007805,2.5486216 0 0 1 2.09961,2.54883 2.1007805,2.5486216 0 0 1 -2.09961,2.54883 2.1007805,2.5486216 0 0 1 -1.578125,-0.86914 c -0.21142,-0.15451 -0.459495,-0.25196 -0.697265,-0.25196 -0.222355,0 -0.42454,0.0862 -0.603516,0.22266 v 3.34961 c 0,1.108 0.892,2 2,2 h 10 c 1.108,0 2,-0.892 2,-2 v -3.34961 c 0.178976,-0.13648 0.381161,-0.22266 0.603516,-0.22266 0.23777,0 0.485845,0.0974 0.697265,0.25196 a 2.1007805,2.5486216 0 0 0 1.578125,0.86914 2.1007805,2.5486216 0 0 0 2.09961,-2.54883 2.1007805,2.5486216 0 0 0 -2.09961,-2.54883 2.1007805,2.5486216 0 0 0 -1.65039,0.97656 c -0.19885,0.13089 -0.425881,0.20899 -0.650391,0.20899 -0.210996,0 -0.405721,-0.0739 -0.578125,-0.19727 v -3.43945 c 0,-1.108 -0.892,-2 -2,-2 h -3.341797 c -0.141157,-0.18122 -0.230469,-0.38682 -0.230469,-0.61328 0,-0.23777 0.09745,-0.4878 0.251954,-0.69922 a 2.5486216,2.1007805 0 0 0 0.86914,-1.57617 A 2.5486216,2.1007805 0 0 0 12,295.07422 Z"
+       id="rect926"
+       inkscape:connector-curvature="0" />
+  </g>
+</svg>
+                  <span
+                    class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible"
+                  >
+                    Plugins
+                  </span>
+                </a>
+              </li>
+  
+              <li>
+                <a class="group relative flex justify-center rounded px-2 py-1.5 text-gray-500 hover:bg-[#ffffff1a] hover:text-gray-700"
+                >
+                <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 8V12L14.5 14.5" stroke="#9AA6B2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M5.60414 5.60414L5.07381 5.07381V5.07381L5.60414 5.60414ZM4.33776 6.87052L3.58777 6.87429C3.58984 7.28556 3.92272 7.61844 4.33399 7.62051L4.33776 6.87052ZM6.87954 7.6333C7.29375 7.63539 7.63122 7.30129 7.6333 6.88708C7.63538 6.47287 7.30129 6.1354 6.88708 6.13332L6.87954 7.6333ZM5.07496 4.3212C5.07288 3.90699 4.73541 3.5729 4.3212 3.57498C3.90699 3.57706 3.5729 3.91453 3.57498 4.32874L5.07496 4.3212ZM3.82661 10.7849C3.88286 10.3745 3.59578 9.99627 3.1854 9.94002C2.77503 9.88377 2.39675 10.1708 2.3405 10.5812L3.82661 10.7849ZM18.8622 5.13777C15.042 1.31758 8.86873 1.27889 5.07381 5.07381L6.13447 6.13447C9.33358 2.93536 14.5571 2.95395 17.8016 6.19843L18.8622 5.13777ZM5.13777 18.8622C8.95796 22.6824 15.1313 22.7211 18.9262 18.9262L17.8655 17.8655C14.6664 21.0646 9.44291 21.0461 6.19843 17.8016L5.13777 18.8622ZM18.9262 18.9262C22.7211 15.1313 22.6824 8.95796 18.8622 5.13777L17.8016 6.19843C21.0461 9.44291 21.0646 14.6664 17.8655 17.8655L18.9262 18.9262ZM5.07381 5.07381L3.80743 6.34019L4.86809 7.40085L6.13447 6.13447L5.07381 5.07381ZM4.33399 7.62051L6.87954 7.6333L6.88708 6.13332L4.34153 6.12053L4.33399 7.62051ZM5.08775 6.86675L5.07496 4.3212L3.57498 4.32874L3.58777 6.87429L5.08775 6.86675ZM2.3405 10.5812C1.93907 13.5099 2.87392 16.5984 5.13777 18.8622L6.19843 17.8016C4.27785 15.881 3.48663 13.2652 3.82661 10.7849L2.3405 10.5812Z" fill="#9AA6B2"/>
+</svg>
+<span class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible"
+                  >
+                    History
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+  
+      <div class="sticky inset-x-0 bottom-0 border-t border-gray-800 bg-[#31363F] p-2">
+        
+          <button
+            type="submit"
+            class="group relative flex w-full justify-center rounded-lg px-2 py-1.5 text-sm text-gray-500 hover:bg-[#ffffff1a] hover:text-gray-700"
+          >
+          <svg
                   xmlns="http://www.w3.org/2000/svg"
                   class="size-5 opacity-75"
                   fill="none"
@@ -42,294 +189,14 @@ const name = ref("John Doe");
                   />
                 </svg>
   
-                <span
-                  class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible"
-                >
-                  General
-                </span>
-              </a>
-            </div>
-  
-            <ul class="space-y-1 border-t border-gray-100 pt-4">
-              <li>
-                <a
-                  href="#"
-                  class="group relative flex justify-center rounded px-2 py-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="size-5 opacity-75"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
-                  </svg>
-  
-                  <span
-                    class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible"
-                  >
-                    Teams
-                  </span>
-                </a>
-              </li>
-  
-              <li>
-                <a
-                  href="#"
-                  class="group relative flex justify-center rounded px-2 py-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="size-5 opacity-75"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                    />
-                  </svg>
-  
-                  <span
-                    class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible"
-                  >
-                    Billing
-                  </span>
-                </a>
-              </li>
-  
-              <li>
-                <a
-                  href="#"
-                  class="group relative flex justify-center rounded px-2 py-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="size-5 opacity-75"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-  
-                  <span
-                    class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible"
-                  >
-                    Invoices
-                  </span>
-                </a>
-              </li>
-  
-              <li>
-                <a
-                  href="#"
-                  class="group relative flex justify-center rounded px-2 py-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="size-5 opacity-75"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-  
-                  <span
-                    class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible"
-                  >
-                    Account
-                  </span>
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-  
-      <div class="sticky inset-x-0 bottom-0 border-t border-gray-100 bg-white p-2">
-        <form action="#">
-          <button
-            type="submit"
-            class="group relative flex w-full justify-center rounded-lg px-2 py-1.5 text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="size-5 opacity-75"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              />
-            </svg>
-  
             <span
               class="invisible absolute start-full top-1/2 ms-4 -translate-y-1/2 rounded bg-gray-900 px-2 py-1.5 text-xs font-medium text-white group-hover:visible"
             >
-              Logout
+              Settings
             </span>
           </button>
-        </form>
+       
       </div>
     </div>
-  
-    <div class="flex h-screen flex-col justify-between border-e bg-white">
-      <div class="px-4 py-6">
-        <ul class="mt-14 space-y-1">
-          <li>
-            <a
-              href="#"
-              class="block rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700"
-            >
-              General
-            </a>
-          </li>
-  
-          <li>
-            <details class="group [&_summary::-webkit-details-marker]:hidden">
-              <summary
-                class="flex cursor-pointer items-center justify-between rounded-lg px-4 py-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-              >
-                <span class="text-sm font-medium"> Teams </span>
-  
-                <span class="shrink-0 transition duration-300 group-open:-rotate-180">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="size-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </span>
-              </summary>
-  
-              <ul class="mt-2 space-y-1 px-4">
-                <li>
-                  <a
-                    href="#"
-                    class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                  >
-                    Banned Users
-                  </a>
-                </li>
-  
-                <li>
-                  <a
-                    href="#"
-                    class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                  >
-                    Calendar
-                  </a>
-                </li>
-              </ul>
-            </details>
-          </li>
-  
-          <li>
-            <a
-              href="#"
-              class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-            >
-              Billing
-            </a>
-          </li>
-  
-          <li>
-            <a
-              href="#"
-              class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-            >
-              Invoices
-            </a>
-          </li>
-  
-          <li>
-            <details class="group [&_summary::-webkit-details-marker]:hidden">
-              <summary
-                class="flex cursor-pointer items-center justify-between rounded-lg px-4 py-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-              >
-                <span class="text-sm font-medium"> Account </span>
-  
-                <span class="shrink-0 transition duration-300 group-open:-rotate-180">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="size-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </span>
-              </summary>
-  
-              <ul class="mt-2 space-y-1 px-4">
-                <li>
-                  <a
-                    href="#"
-                    class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                  >
-                    Details
-                  </a>
-                </li>
-  
-                <li>
-                  <a
-                    href="#"
-                    class="block rounded-lg px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                  >
-                    Security
-                  </a>
-                </li>
-  
-                <li>
-                  <form action="#">
-                    <button
-                      type="submit"
-                      class="w-full rounded-lg px-4 py-2 text-sm font-medium text-gray-500 [text-align:_inherit] hover:bg-gray-100 hover:text-gray-700"
-                    >
-                      Logout
-                    </button>
-                  </form>
-                </li>
-              </ul>
-            </details>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </div>
+ 
 </template>

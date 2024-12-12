@@ -15,9 +15,6 @@
        height: 100%;
        -webkit-app-region: no-drag;
     }
-    .bg-image{
-      background-image: radial-gradient(circle, #352342, #2d203c, #261d35, #1f192f, #191628);
-   }
    .custom-grid{
       display: grid;
       grid-template-columns: auto 184px;
