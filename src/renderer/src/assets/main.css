@@ -1,9 +1,0 @@
-@import "tailwindcss";
-@plugin "daisyui"{
-    themes: light --default, dark --prefersdark;
-
-}
-@theme{
-    --color-midnight:#191e24;
-    --color-background : #222831;
-}

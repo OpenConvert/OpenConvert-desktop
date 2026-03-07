@@ -1,5 +1,0 @@
-onlyBuiltDependencies:
-  - electron
-  - esbuild
-  - sharp
-  - sqlite3
