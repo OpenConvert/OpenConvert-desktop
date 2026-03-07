@@ -7,11 +7,25 @@ import ConvertView from '@/views/ConvertView'
 import PluginsView from '@/views/PluginsView'
 import HistoryView from '@/views/HistoryView'
 import SettingsView from '@/views/SettingsView'
+import type { ConvertFile } from '@/components/FileList'
 
-function renderView(activeTab: Tab) {
+function renderView(
+  activeTab: Tab,
+  files: ConvertFile[],
+  setFiles: React.Dispatch<React.SetStateAction<ConvertFile[]>>,
+  outputDir: string | null,
+  setOutputDir: React.Dispatch<React.SetStateAction<string | null>>
+) {
   switch (activeTab) {
     case 'convert':
-      return <ConvertView />
+      return (
+        <ConvertView
+          files={files}
+          setFiles={setFiles}
+          outputDir={outputDir}
+          setOutputDir={setOutputDir}
+        />
+      )
     case 'plugins':
       return <PluginsView />
     case 'history':
@@ -25,16 +39,32 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('convert')
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true)
 
-  // F12 / Ctrl+Shift+I to toggle DevTools (dev mode only)
+  // Lifted state from ConvertView
+  const [files, setFiles] = useState<ConvertFile[]>([])
+  const [outputDir, setOutputDir] = useState<string | null>(null)
+
+  // Global handlers
   useEffect(() => {
+    // F12 / Ctrl+Shift+I to toggle DevTools (dev mode only)
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
         e.preventDefault()
         window.electronAPI.toggleDevTools()
       }
     }
+
+    // Prevent Electron from navigating when a file is dropped outside ConvertView
+    const preventDragDrop = (e: DragEvent) => e.preventDefault()
+
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('dragover', preventDragDrop)
+    window.addEventListener('drop', preventDragDrop)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('dragover', preventDragDrop)
+      window.removeEventListener('drop', preventDragDrop)
+    }
   }, [])
 
   return (
@@ -52,8 +82,8 @@ function App() {
             isSidebarExpanded={isSidebarExpanded}
           />
 
-          <main className="flex-1 overflow-y-auto custom-scrollbar">
-            {renderView(activeTab)}
+          <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+            {renderView(activeTab, files, setFiles, outputDir, setOutputDir)}
           </main>
         </div>
       </div>

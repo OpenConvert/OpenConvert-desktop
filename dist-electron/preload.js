@@ -1,18 +1,18 @@
-import { contextBridge, ipcRenderer } from "electron";
-contextBridge.exposeInMainWorld("electronAPI", {
+import { contextBridge as t, ipcRenderer as e } from "electron";
+t.exposeInMainWorld("electronAPI", {
   // Window controls
-  minimize: () => ipcRenderer.send("window-minimize"),
-  maximize: () => ipcRenderer.send("window-maximize"),
-  close: () => ipcRenderer.send("window-close"),
-  toggleDevTools: () => ipcRenderer.send("toggle-dev-tools"),
+  minimize: () => e.send("window-minimize"),
+  maximize: () => e.send("window-maximize"),
+  close: () => e.send("window-close"),
+  toggleDevTools: () => e.send("toggle-dev-tools"),
   // Window state listener
-  onMaximizeChange: (callback) => {
-    const handler = (_event, isMaximized) => callback(isMaximized);
-    ipcRenderer.on("window-maximized-changed", handler);
-    return () => ipcRenderer.removeListener("window-maximized-changed", handler);
+  onMaximizeChange: (i) => {
+    const n = (d, o) => i(o);
+    return e.on("window-maximized-changed", n), () => e.removeListener("window-maximized-changed", n);
   },
   // File operations
-  openFileDialog: () => ipcRenderer.invoke("open-file-dialog"),
-  selectOutputDir: () => ipcRenderer.invoke("select-output-dir"),
-  getFileInfo: (filePath) => ipcRenderer.invoke("get-file-info", filePath)
+  openFileDialog: () => e.invoke("open-file-dialog"),
+  selectOutputDir: () => e.invoke("select-output-dir"),
+  getFileInfo: (i) => e.invoke("get-file-info", i),
+  convertFiles: (i) => e.invoke("convert-files", i)
 });

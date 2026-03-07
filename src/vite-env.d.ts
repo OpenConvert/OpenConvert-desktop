@@ -21,6 +21,7 @@ interface ElectronAPI {
     openFileDialog: () => Promise<FileInfo[]>
     selectOutputDir: () => Promise<string | null>
     getFileInfo: (filePath: string) => Promise<FileInfo | null>
+    convertFiles: (payload: { targetDirectory: string, filesToConvert: { sourcePath: string, targetFormat: string }[] }) => Promise<{ success: boolean }>
 }
 
 interface Window {

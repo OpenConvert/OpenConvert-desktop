@@ -6,32 +6,6 @@ interface DropZoneProps {
 }
 
 export default function DropZone({ onFilesAdded }: DropZoneProps) {
-    const handleDrop = useCallback(async (e: React.DragEvent) => {
-        e.preventDefault()
-        e.stopPropagation()
-
-        try {
-            const droppedFiles = Array.from(e.dataTransfer.files)
-            const fileInfos: FileInfo[] = []
-
-            for (const file of droppedFiles) {
-                // In Electron, the File object has a non-standard `path` property
-                const electronFile = file as ElectronFile
-                const info = await window.electronAPI.getFileInfo(electronFile.path)
-                if (info) fileInfos.push(info)
-            }
-
-            if (fileInfos.length > 0) onFilesAdded(fileInfos)
-        } catch (err) {
-            console.error('Failed to process dropped files:', err)
-        }
-    }, [onFilesAdded])
-
-    const handleDragOver = useCallback((e: React.DragEvent) => {
-        e.preventDefault()
-        e.stopPropagation()
-    }, [])
-
     const handleBrowse = useCallback(async () => {
         try {
             const files = await window.electronAPI.openFileDialog()
@@ -43,8 +17,6 @@ export default function DropZone({ onFilesAdded }: DropZoneProps) {
 
     return (
         <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
             onClick={handleBrowse}
             className="group relative cursor-pointer rounded-2xl border-2 border-dashed border-zinc-700/50 hover:border-violet-500/50 bg-zinc-900/30 hover:bg-violet-500/5 transition-all duration-300 p-12 flex flex-col items-center justify-center gap-4"
         >

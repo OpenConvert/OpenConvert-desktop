@@ -19,4 +19,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
     selectOutputDir: () => ipcRenderer.invoke('select-output-dir'),
     getFileInfo: (filePath: string) => ipcRenderer.invoke('get-file-info', filePath),
+    convertFiles: (payload: { targetDirectory: string, filesToConvert: { sourcePath: string, targetFormat: string }[] }) => ipcRenderer.invoke('convert-files', payload),
 })

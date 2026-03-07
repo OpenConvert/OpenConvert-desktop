@@ -1,79 +1,57 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
-import path from "path";
-import { fileURLToPath } from "url";
-import fs from "fs/promises";
-const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
-const isDev = !!process.env.VITE_DEV_SERVER_URL;
-let mainWindow = null;
-function createWindow() {
-  mainWindow = new BrowserWindow({
+import { app as l, BrowserWindow as a, ipcMain as n, dialog as d } from "electron";
+import t from "path";
+import { fileURLToPath as w } from "url";
+import c from "fs/promises";
+const r = t.dirname(w(import.meta.url)), m = !!process.env.VITE_DEV_SERVER_URL;
+let e = null;
+function p() {
+  e = new a({
     width: 1100,
     height: 750,
     minWidth: 800,
     minHeight: 600,
-    frame: false,
+    frame: !1,
     backgroundColor: "#0a0a0b",
     webPreferences: {
-      preload: path.join(__dirname$1, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false
+      preload: t.join(r, "preload.js"),
+      contextIsolation: !0,
+      nodeIntegration: !1,
+      sandbox: !1,
+      devTools: !0
     }
-  });
-  mainWindow.on("maximize", () => {
-    mainWindow?.webContents.send("window-maximized-changed", true);
-  });
-  mainWindow.on("unmaximize", () => {
-    mainWindow?.webContents.send("window-maximized-changed", false);
-  });
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-  });
-  console.log("[main] isDev:", isDev);
-  console.log("[main] VITE_DEV_SERVER_URL:", process.env.VITE_DEV_SERVER_URL);
-  if (isDev) {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    console.log("[main] Loaded dev URL, opening DevTools...");
-    mainWindow?.webContents.openDevTools({ mode: "undocked" });
-  } else {
-    mainWindow.loadFile(path.join(__dirname$1, "../dist/index.html"));
-  }
-  mainWindow.once("ready-to-show", () => {
-    console.log("[main] Window ready-to-show, opening DevTools...");
-    mainWindow?.webContents.openDevTools({ mode: "undocked" });
-  });
-  ipcMain.on("toggle-dev-tools", () => {
-    console.log("[main] toggle-dev-tools IPC received");
-    if (mainWindow?.webContents.isDevToolsOpened()) {
-      mainWindow.webContents.closeDevTools();
-    } else {
-      mainWindow?.webContents.openDevTools({ mode: "undocked" });
-    }
+  }), e.on("maximize", () => {
+    e?.webContents.send("window-maximized-changed", !0);
+  }), e.on("unmaximize", () => {
+    e?.webContents.send("window-maximized-changed", !1);
+  }), e.on("closed", () => {
+    e = null;
+  }), console.log("[main] isDev:", m), console.log("[main] VITE_DEV_SERVER_URL:", process.env.VITE_DEV_SERVER_URL), m ? (e.loadURL(process.env.VITE_DEV_SERVER_URL), console.log("[main] Dev server URL loaded.")) : e.loadFile(t.join(r, "../dist/index.html"));
+  let o = null;
+  n.removeAllListeners("toggle-dev-tools"), n.on("toggle-dev-tools", () => {
+    console.log("[main] toggle-dev-tools IPC received"), e && (e.webContents.isDevToolsOpened() ? (console.log("[main] Closing DevTools"), e.webContents.closeDevTools(), o && !o.isDestroyed() && o.close(), o = null) : (console.log("[main] Opening Custom DevTools Window"), (!o || o.isDestroyed()) && (o = new a({
+      width: 800,
+      height: 600,
+      title: "OpenConvert Developer Tools"
+    }), o.on("closed", () => {
+      o = null;
+    })), e.webContents.setDevToolsWebContents(o.webContents), e.webContents.openDevTools({ mode: "detach" })));
   });
 }
-app.whenReady().then(createWindow);
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+l.whenReady().then(p);
+l.on("window-all-closed", () => {
+  process.platform !== "darwin" && l.quit();
 });
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+l.on("activate", () => {
+  a.getAllWindows().length === 0 && p();
 });
-ipcMain.on("window-minimize", () => mainWindow?.minimize());
-ipcMain.on("window-maximize", () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow.unmaximize();
-  } else {
-    mainWindow?.maximize();
-  }
+n.on("window-minimize", () => e?.minimize());
+n.on("window-maximize", () => {
+  e?.isMaximized() ? e.unmaximize() : e?.maximize();
 });
-ipcMain.on("window-close", () => mainWindow?.close());
-ipcMain.handle("open-file-dialog", async () => {
-  if (!mainWindow) return [];
-  const result = await dialog.showOpenDialog(mainWindow, {
+n.on("window-close", () => e?.close());
+n.handle("open-file-dialog", async () => {
+  if (!e) return [];
+  const o = await d.showOpenDialog(e, {
     properties: ["openFile", "multiSelections"],
     filters: [
       {
@@ -125,38 +103,36 @@ ipcMain.handle("open-file-dialog", async () => {
       { name: "All Files", extensions: ["*"] }
     ]
   });
-  if (result.canceled) return [];
-  const fileInfos = await Promise.all(
-    result.filePaths.map(async (filePath) => {
-      const stat = await fs.stat(filePath);
+  return o.canceled ? [] : await Promise.all(
+    o.filePaths.map(async (s) => {
+      const f = await c.stat(s);
       return {
-        path: filePath,
-        name: path.basename(filePath),
-        ext: path.extname(filePath).slice(1).toLowerCase(),
-        size: stat.size
+        path: s,
+        name: t.basename(s),
+        ext: t.extname(s).slice(1).toLowerCase(),
+        size: f.size
       };
     })
   );
-  return fileInfos;
 });
-ipcMain.handle("select-output-dir", async () => {
-  if (!mainWindow) return null;
-  const result = await dialog.showOpenDialog(mainWindow, {
+n.handle("select-output-dir", async () => {
+  if (!e) return null;
+  const o = await d.showOpenDialog(e, {
     properties: ["openDirectory", "createDirectory"]
   });
-  if (result.canceled) return null;
-  return result.filePaths[0];
+  return o.canceled ? null : o.filePaths[0];
 });
-ipcMain.handle("get-file-info", async (_event, filePath) => {
+n.handle("get-file-info", async (o, i) => {
   try {
-    const stat = await fs.stat(filePath);
+    const s = await c.stat(i);
     return {
-      path: filePath,
-      name: path.basename(filePath),
-      ext: path.extname(filePath).slice(1).toLowerCase(),
-      size: stat.size
+      path: i,
+      name: t.basename(i),
+      ext: t.extname(i).slice(1).toLowerCase(),
+      size: s.size
     };
   } catch {
     return null;
   }
 });
+n.handle("convert-files", async (o, i) => (console.log("[main] Received conversion payload:", JSON.stringify(i, null, 2)), { success: !0 }));

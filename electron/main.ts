@@ -21,6 +21,7 @@ function createWindow() {
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: false,
+            devTools: true,
         },
     })
 
@@ -42,25 +43,41 @@ function createWindow() {
 
     if (isDev) {
         mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL!)
-        console.log('[main] Loaded dev URL, opening DevTools...')
-        mainWindow?.webContents.openDevTools({ mode: 'undocked' })
+        console.log('[main] Dev server URL loaded.')
     } else {
         mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
     }
 
-    // Fallback: open DevTools after window is ready, unconditionally
-    mainWindow.once('ready-to-show', () => {
-        console.log('[main] Window ready-to-show, opening DevTools...')
-        mainWindow?.webContents.openDevTools({ mode: 'undocked' })
-    })
+    let devToolsWindow: BrowserWindow | null = null
 
-    // Toggle DevTools via IPC from renderer
+    ipcMain.removeAllListeners('toggle-dev-tools')
     ipcMain.on('toggle-dev-tools', () => {
         console.log('[main] toggle-dev-tools IPC received')
-        if (mainWindow?.webContents.isDevToolsOpened()) {
+
+        if (!mainWindow) return
+
+        if (mainWindow.webContents.isDevToolsOpened()) {
+            console.log('[main] Closing DevTools')
             mainWindow.webContents.closeDevTools()
+            if (devToolsWindow && !devToolsWindow.isDestroyed()) {
+                devToolsWindow.close()
+            }
+            devToolsWindow = null
         } else {
-            mainWindow?.webContents.openDevTools({ mode: 'undocked' })
+            console.log('[main] Opening Custom DevTools Window')
+            if (!devToolsWindow || devToolsWindow.isDestroyed()) {
+                devToolsWindow = new BrowserWindow({
+                    width: 800,
+                    height: 600,
+                    title: "OpenConvert Developer Tools"
+                })
+                devToolsWindow.on('closed', () => {
+                    devToolsWindow = null
+                })
+            }
+
+            mainWindow.webContents.setDevToolsWebContents(devToolsWindow.webContents)
+            mainWindow.webContents.openDevTools({ mode: 'detach' })
         }
     })
 }
@@ -156,4 +173,14 @@ ipcMain.handle('get-file-info', async (_event, filePath: string) => {
     } catch {
         return null
     }
+})
+
+// Convert files payload receiver
+ipcMain.handle('convert-files', async (_event, payload: { targetDirectory: string, filesToConvert: { sourcePath: string, targetFormat: string }[] }) => {
+    console.log('[main] Received conversion payload:', JSON.stringify(payload, null, 2))
+
+    // TODO: Implement actual conversion logic here
+
+    // Simulate successful conversion for now
+    return { success: true }
 })
