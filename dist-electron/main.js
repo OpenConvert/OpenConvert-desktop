@@ -1,36 +1,146 @@
-import { app, ipcMain, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs/promises";
 const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
-let mainWindow;
+let mainWindow = null;
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1024,
-    height: 768,
+    width: 1100,
+    height: 750,
+    minWidth: 800,
+    minHeight: 600,
     frame: false,
-    // MAGIC HAPPENS HERE: Removes default OS window frame
-    titleBarStyle: "hidden",
-    // Extra clean up for macOS
+    backgroundColor: "#0a0a0b",
     webPreferences: {
       preload: path.join(__dirname$1, "preload.js"),
-      // Security bridge (compiled from preload.ts)
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: false
     }
+  });
+  mainWindow.on("maximize", () => {
+    mainWindow?.webContents.send("window-maximized-changed", true);
+  });
+  mainWindow.on("unmaximize", () => {
+    mainWindow?.webContents.send("window-maximized-changed", false);
+  });
+  mainWindow.on("closed", () => {
+    mainWindow = null;
   });
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
+    mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     mainWindow.loadFile(path.join(__dirname$1, "../dist/index.html"));
   }
 }
 app.whenReady().then(createWindow);
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
+});
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
 ipcMain.on("window-minimize", () => mainWindow?.minimize());
 ipcMain.on("window-maximize", () => {
   if (mainWindow?.isMaximized()) {
-    mainWindow?.unmaximize();
+    mainWindow.unmaximize();
   } else {
     mainWindow?.maximize();
   }
 });
 ipcMain.on("window-close", () => mainWindow?.close());
+ipcMain.handle("open-file-dialog", async () => {
+  if (!mainWindow) return [];
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openFile", "multiSelections"],
+    filters: [
+      {
+        name: "Supported Files",
+        extensions: [
+          "png",
+          "jpg",
+          "jpeg",
+          "gif",
+          "webp",
+          "bmp",
+          "avif",
+          "tiff",
+          "tif",
+          "svg",
+          "ico",
+          "jxl",
+          "pdf",
+          "epub",
+          "xps",
+          "cbz",
+          "mobi",
+          "fb2",
+          "docx",
+          "txt",
+          "rtf",
+          "odt",
+          "mp4",
+          "mkv",
+          "avi",
+          "mov",
+          "webm",
+          "3gp",
+          "flv",
+          "wmv",
+          "mp3",
+          "wav",
+          "aac",
+          "ogg",
+          "flac",
+          "wma",
+          "m4a"
+        ]
+      },
+      { name: "Images", extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp", "avif", "tiff", "tif", "svg", "ico", "jxl"] },
+      { name: "Documents", extensions: ["pdf", "epub", "xps", "cbz", "mobi", "fb2", "docx", "txt", "rtf", "odt"] },
+      { name: "Video", extensions: ["mp4", "mkv", "avi", "mov", "webm", "3gp", "flv", "wmv"] },
+      { name: "Audio", extensions: ["mp3", "wav", "aac", "ogg", "flac", "wma", "m4a"] },
+      { name: "All Files", extensions: ["*"] }
+    ]
+  });
+  if (result.canceled) return [];
+  const fileInfos = await Promise.all(
+    result.filePaths.map(async (filePath) => {
+      const stat = await fs.stat(filePath);
+      return {
+        path: filePath,
+        name: path.basename(filePath),
+        ext: path.extname(filePath).slice(1).toLowerCase(),
+        size: stat.size
+      };
+    })
+  );
+  return fileInfos;
+});
+ipcMain.handle("select-output-dir", async () => {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openDirectory", "createDirectory"]
+  });
+  if (result.canceled) return null;
+  return result.filePaths[0];
+});
+ipcMain.handle("get-file-info", async (_event, filePath) => {
+  try {
+    const stat = await fs.stat(filePath);
+    return {
+      path: filePath,
+      name: path.basename(filePath),
+      ext: path.extname(filePath).slice(1).toLowerCase(),
+      size: stat.size
+    };
+  } catch {
+    return null;
+  }
+});

@@ -17,14 +17,11 @@ export default defineConfig({
     tailwindcss(),
     electron([
       {
-        // Main process entry point
         entry: 'electron/main.ts',
       },
       {
-        // Preload script entry point
         entry: 'electron/preload.ts',
         onstart(args) {
-          // Notify the renderer process to reload when preload changes
           args.reload()
         },
       },
