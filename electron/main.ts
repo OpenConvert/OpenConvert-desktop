@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import fs from 'fs/promises'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const isDev = !!process.env.VITE_DEV_SERVER_URL
 
 let mainWindow: BrowserWindow | null = null
 
@@ -36,12 +37,32 @@ function createWindow() {
         mainWindow = null
     })
 
-    if (process.env.VITE_DEV_SERVER_URL) {
-        mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
-        mainWindow.webContents.openDevTools({ mode: 'detach' })
+    console.log('[main] isDev:', isDev)
+    console.log('[main] VITE_DEV_SERVER_URL:', process.env.VITE_DEV_SERVER_URL)
+
+    if (isDev) {
+        mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL!)
+        console.log('[main] Loaded dev URL, opening DevTools...')
+        mainWindow?.webContents.openDevTools({ mode: 'undocked' })
     } else {
         mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
     }
+
+    // Fallback: open DevTools after window is ready, unconditionally
+    mainWindow.once('ready-to-show', () => {
+        console.log('[main] Window ready-to-show, opening DevTools...')
+        mainWindow?.webContents.openDevTools({ mode: 'undocked' })
+    })
+
+    // Toggle DevTools via IPC from renderer
+    ipcMain.on('toggle-dev-tools', () => {
+        console.log('[main] toggle-dev-tools IPC received')
+        if (mainWindow?.webContents.isDevToolsOpened()) {
+            mainWindow.webContents.closeDevTools()
+        } else {
+            mainWindow?.webContents.openDevTools({ mode: 'undocked' })
+        }
+    })
 }
 
 app.whenReady().then(createWindow)

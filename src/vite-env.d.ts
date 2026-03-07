@@ -16,6 +16,7 @@ interface ElectronAPI {
     minimize: () => void
     maximize: () => void
     close: () => void
+    toggleDevTools: () => void
     onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void
     openFileDialog: () => Promise<FileInfo[]>
     selectOutputDir: () => Promise<string | null>

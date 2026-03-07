@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Minus, Square, Copy, X } from 'lucide-react'
+import { Minus, Square, Copy, X, PanelLeft } from 'lucide-react'
 
-export default function Titlebar() {
+interface TitlebarProps {
+    isSidebarExpanded: boolean
+    onToggleSidebar: () => void
+}
+
+export default function Titlebar({ isSidebarExpanded, onToggleSidebar }: TitlebarProps) {
     const [isMaximized, setIsMaximized] = useState(false)
 
     useEffect(() => {
@@ -12,17 +17,18 @@ export default function Titlebar() {
     }, [])
 
     return (
-        <div className="flex justify-between items-center bg-[#0a0a0b] h-10 w-full select-none text-white border-b border-white/5"
+        <div className="flex justify-between items-center bg-[#0a0a0b] h-10 w-full select-none text-white border-b border-white/5 flex-shrink-0"
             style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
-            {/* Left side: App icon + name */}
-            <div className="flex items-center gap-2 pl-4">
-                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-white">O</span>
-                </div>
-                <span className="text-sm font-medium text-zinc-400">
-                    OpenConvert
-                </span>
+            {/* Left side: Sidebar toggle icon */}
+            <div className="flex items-center pl-2" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+                <button
+                    onClick={onToggleSidebar}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors duration-150"
+                    aria-label={isSidebarExpanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
+                >
+                    <PanelLeft size={16} />
+                </button>
             </div>
 
             {/* Right side: Window controls */}
@@ -52,3 +58,4 @@ export default function Titlebar() {
         </div>
     )
 }
+

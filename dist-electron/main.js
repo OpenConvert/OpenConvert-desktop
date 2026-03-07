@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
 const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
+const isDev = !!process.env.VITE_DEV_SERVER_URL;
 let mainWindow = null;
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -28,12 +29,27 @@ function createWindow() {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
-  if (process.env.VITE_DEV_SERVER_URL) {
+  console.log("[main] isDev:", isDev);
+  console.log("[main] VITE_DEV_SERVER_URL:", process.env.VITE_DEV_SERVER_URL);
+  if (isDev) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    mainWindow.webContents.openDevTools({ mode: "detach" });
+    console.log("[main] Loaded dev URL, opening DevTools...");
+    mainWindow?.webContents.openDevTools({ mode: "undocked" });
   } else {
     mainWindow.loadFile(path.join(__dirname$1, "../dist/index.html"));
   }
+  mainWindow.once("ready-to-show", () => {
+    console.log("[main] Window ready-to-show, opening DevTools...");
+    mainWindow?.webContents.openDevTools({ mode: "undocked" });
+  });
+  ipcMain.on("toggle-dev-tools", () => {
+    console.log("[main] toggle-dev-tools IPC received");
+    if (mainWindow?.webContents.isDevToolsOpened()) {
+      mainWindow.webContents.closeDevTools();
+    } else {
+      mainWindow?.webContents.openDevTools({ mode: "undocked" });
+    }
+  });
 }
 app.whenReady().then(createWindow);
 app.on("window-all-closed", () => {
