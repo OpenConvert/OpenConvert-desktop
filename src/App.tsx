@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { SettingsProvider } from '@/contexts/SettingsContext'
 import Titlebar from '@/components/Titlebar'
 import AppSidebar from '@/components/Sidebar'
 import type { Tab } from '@/components/Sidebar'
@@ -51,43 +52,68 @@ function App() {
         e.preventDefault()
         window.electronAPI.toggleDevTools()
       }
+
+      // Keyboard shortcuts
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case ',':
+            e.preventDefault()
+            setActiveTab('settings')
+            break
+          case 'h':
+            if (e.shiftKey) {
+              e.preventDefault()
+              setActiveTab('history')
+            }
+            break
+        }
+      }
     }
 
-    // Prevent Electron from navigating when a file is dropped outside ConvertView
-    const preventDragDrop = (e: DragEvent) => e.preventDefault()
+    // Prevent Electron from navigating when a file is dropped outside
+    // ConvertView. We attach these in the CAPTURE phase so they run before
+    // React's delegated handlers — their only job is e.preventDefault()
+    // (which tells the browser not to open the file). We must NOT call
+    // e.stopPropagation() here, otherwise the React onDrop/onDragOver
+    // handlers will never fire.
+    const preventNav = (e: DragEvent) => {
+      e.preventDefault()
+    }
 
     window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('dragover', preventDragDrop)
-    window.addEventListener('drop', preventDragDrop)
+    document.addEventListener('dragover', preventNav)
+    document.addEventListener('drop', preventNav)
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('dragover', preventDragDrop)
-      window.removeEventListener('drop', preventDragDrop)
+      document.removeEventListener('dragover', preventNav)
+      document.removeEventListener('drop', preventNav)
     }
   }, [])
 
   return (
-    <TooltipProvider>
-      <div className="flex flex-col h-screen bg-[#0a0a0b] text-white overflow-hidden font-sans">
-        <Titlebar
-          isSidebarExpanded={isSidebarExpanded}
-          onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}
-        />
-
-        <div className="flex-1 flex overflow-hidden">
-          <AppSidebar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
+    <SettingsProvider>
+      <TooltipProvider>
+        <div className="flex flex-col h-screen bg-[#0a0a0b] text-white overflow-hidden font-sans">
+          <Titlebar
             isSidebarExpanded={isSidebarExpanded}
+            onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}
           />
 
-          <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
-            {renderView(activeTab, files, setFiles, outputDir, setOutputDir)}
-          </main>
+          <div className="flex-1 flex overflow-hidden">
+            <AppSidebar
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              isSidebarExpanded={isSidebarExpanded}
+            />
+
+            <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+              {renderView(activeTab, files, setFiles, outputDir, setOutputDir)}
+            </main>
+          </div>
         </div>
-      </div>
-    </TooltipProvider>
+      </TooltipProvider>
+    </SettingsProvider>
   )
 }
 

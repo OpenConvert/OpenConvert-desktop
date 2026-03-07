@@ -1,12 +1,16 @@
-import { useState, useCallback, useRef } from 'react'
-import { FolderOutput, Zap, Settings2, Image, FileText, Film, Music, Plus, Trash2, Upload } from 'lucide-react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { FolderOutput, Zap, Settings2, Image, FileText, Film, Music, Plus, Trash2, Upload, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import DropZone from '@/components/DropZone'
 import FileList from '@/components/FileList'
 import type { ConvertFile } from '@/components/FileList'
 import { getTargetFormats, getFileCategory } from '@/lib/formats'
+import { useSettings } from '@/contexts/SettingsContext'
+import { QUALITY_LABELS, QUALITY_VALUES } from '@/lib/settings'
+import type { QualityPreset, OverwriteBehavior } from '@/lib/settings'
 
 interface ConvertViewProps {
   files: ConvertFile[]
@@ -18,7 +22,36 @@ interface ConvertViewProps {
 export default function ConvertView({ files, setFiles, outputDir, setOutputDir }: ConvertViewProps) {
   const [isConverting, setIsConverting] = useState(false)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [batchQuality, setBatchQuality] = useState<QualityPreset | null>(null) // null = use global setting
+  const [batchOverwrite, setBatchOverwrite] = useState<OverwriteBehavior | null>(null)
   const dragCounter = useRef(0)
+  const { settings } = useSettings()
+
+  // Listen for real-time conversion progress from the main process
+  useEffect(() => {
+    const cleanup = window.electronAPI.onConversionProgress((data) => {
+      setFiles((prev) =>
+        prev.map((f) => {
+          if (f.id !== data.fileId) return f
+          return {
+            ...f,
+            progress: data.progress,
+            status: data.status,
+            error: data.error,
+          }
+        })
+      )
+    })
+    return cleanup
+  }, [setFiles])
+
+  // Use default output dir from settings if none selected
+  useEffect(() => {
+    if (!outputDir && settings.defaultOutputDir) {
+      setOutputDir(settings.defaultOutputDir)
+    }
+  }, [outputDir, settings.defaultOutputDir, setOutputDir])
 
   const handleFilesAdded = useCallback((newFiles: FileInfo[]) => {
     const convertFiles: ConvertFile[] = newFiles.map((f) => {
@@ -70,9 +103,9 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
   }, [setOutputDir])
 
   const handleConvert = useCallback(async () => {
-    if (files.length === 0) return
+    const pendingFiles = files.filter((f) => f.status === 'pending')
+    if (pendingFiles.length === 0) return
 
-    // Check if output directory is selected
     if (!outputDir) {
       alert('Please select an output folder first.')
       return
@@ -80,63 +113,78 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
 
     setIsConverting(true)
 
-    // Assemble the payload
-    const payload = {
+    // Determine quality settings
+    const qualityPreset = batchQuality ?? settings.conversionQuality
+    const quality = QUALITY_VALUES[qualityPreset]
+    const overwrite = batchOverwrite ?? settings.overwriteBehavior
+    const concurrency = settings.concurrency
+
+    // Build the payload with full file info for history
+    const payload: ConvertPayload = {
       targetDirectory: outputDir,
-      filesToConvert: files.map(f => ({
+      filesToConvert: pendingFiles.map((f) => ({
         sourcePath: f.path,
-        targetFormat: f.targetFormat
-      }))
+        sourceExt: f.ext,
+        sourceName: f.name,
+        sourceSize: f.size,
+        targetFormat: f.targetFormat,
+        fileId: f.id,
+      })),
+      quality,
+      concurrency,
+      overwriteBehavior: overwrite,
     }
 
-    console.log('Sending conversion payload:', payload)
-    // await window.electronAPI.convertFiles(payload) // To be implemented
-
-    const fileIds = files.map((f) => f.id)
+    // Mark all pending files as converting
+    setFiles((prev) =>
+      prev.map((f) =>
+        f.status === 'pending' ? { ...f, status: 'converting' as const, progress: 0 } : f
+      )
+    )
 
     try {
-      for (const fileId of fileIds) {
-        setFiles((prev) =>
-          prev.map((f) => (f.id === fileId ? { ...f, status: 'converting' as const, progress: 0 } : f))
-        )
+      const response = await window.electronAPI.convertFiles(payload)
+      console.log('[ConvertView] Conversion response:', response)
 
-        for (let p = 0; p <= 100; p += 10) {
-          await new Promise((r) => setTimeout(r, 80))
-          setFiles((prev) =>
-            prev.map((f) => (f.id === fileId ? { ...f, progress: p } : f))
-          )
-        }
-
-        setFiles((prev) =>
-          prev.map((f) => (f.id === fileId ? { ...f, status: 'done' as const, progress: 100 } : f))
+      // Auto-open folder if setting is enabled and at least one succeeded
+      if (settings.autoOpenFolder && response.results.some((r) => r.success)) {
+        window.electronAPI.showInFolder(
+          response.results.find((r) => r.success)?.outputPath ?? outputDir
         )
       }
     } catch (err) {
       console.error('Conversion failed:', err)
+      // Mark all converting files as error
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.status === 'converting'
+            ? { ...f, status: 'error' as const, error: 'Conversion process failed' }
+            : f
+        )
+      )
     } finally {
       setIsConverting(false)
     }
-  }, [files, outputDir, setFiles])
+  }, [files, outputDir, setFiles, batchQuality, batchOverwrite, settings])
 
-  // --- Global drag-and-drop handlers for populated state ---
+  // --- Drag-and-drop handlers ---
   const processDroppedFiles = useCallback(async (e: React.DragEvent) => {
     e.preventDefault()
-    e.stopPropagation()
-    console.log('[ConvertView] processDroppedFiles fired')
     dragCounter.current = 0
     setIsDraggingOver(false)
 
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    if (droppedFiles.length === 0) return
+
     try {
-      const droppedFiles = Array.from(e.dataTransfer.files)
-      console.log('[ConvertView] dropped files count:', droppedFiles.length)
       const fileInfos: FileInfo[] = []
 
       for (const file of droppedFiles) {
         const electronFile = file as ElectronFile
-        console.log('[ConvertView] file path:', electronFile.path)
-        const info = await window.electronAPI.getFileInfo(electronFile.path)
-        console.log('[ConvertView] info:', info)
-        if (info) fileInfos.push(info)
+        if (electronFile.path) {
+          const info = await window.electronAPI.getFileInfo(electronFile.path)
+          if (info) fileInfos.push(info)
+        }
       }
 
       if (fileInfos.length > 0) handleFilesAdded(fileInfos)
@@ -147,7 +195,6 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    e.stopPropagation()
     dragCounter.current += 1
     if (dragCounter.current === 1) {
       setIsDraggingOver(true)
@@ -156,7 +203,6 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    e.stopPropagation()
     dragCounter.current -= 1
     if (dragCounter.current === 0) {
       setIsDraggingOver(false)
@@ -165,7 +211,6 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    e.stopPropagation()
   }, [])
 
   // Stats
@@ -177,6 +222,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
 
   const pendingCount = files.filter((f) => f.status === 'pending').length
   const doneCount = files.filter((f) => f.status === 'done').length
+  const errorCount = files.filter((f) => f.status === 'error').length
 
   return (
     <div
@@ -242,6 +288,11 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
 
             {/* Right side: File count + Clear all */}
             <div className="flex items-center gap-3">
+              {errorCount > 0 && (
+                <Badge variant="secondary" className="text-xs bg-red-500/10 text-red-400 border-red-500/20 px-2.5 py-0.5">
+                  {errorCount} failed
+                </Badge>
+              )}
               <Badge variant="secondary" className="text-xs bg-zinc-800 text-zinc-400 border-zinc-700 px-2.5 py-0.5">
                 {files.length} {files.length === 1 ? 'file' : 'files'}
               </Badge>
@@ -263,6 +314,70 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
               onTargetFormatChange={handleTargetFormatChange}
             />
           </div>
+
+          {/* Advanced Settings Panel */}
+          {showAdvanced && (
+            <>
+              <Separator className="bg-zinc-800/50" />
+              <div className="flex-shrink-0 px-6 py-3 bg-zinc-950/80 border-t border-zinc-800/30">
+                <div className="flex items-center gap-6">
+                  {/* Quality */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-zinc-500">Quality:</span>
+                    <Select
+                      value={batchQuality ?? settings.conversionQuality}
+                      onValueChange={(val) => setBatchQuality(val as QualityPreset)}
+                    >
+                      <SelectTrigger className="w-[120px] h-7 text-xs bg-zinc-900 border-zinc-700/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-zinc-700">
+                        {(Object.entries(QUALITY_LABELS) as [QualityPreset, { label: string; description: string }][]).map(
+                          ([key, { label, description }]) => (
+                            <SelectItem key={key} value={key} className="text-xs">
+                              <span>{label}</span>
+                              <span className="text-zinc-500 ml-1">- {description}</span>
+                            </SelectItem>
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Overwrite behavior */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-zinc-500">If exists:</span>
+                    <Select
+                      value={batchOverwrite ?? settings.overwriteBehavior}
+                      onValueChange={(val) => setBatchOverwrite(val as OverwriteBehavior)}
+                    >
+                      <SelectTrigger className="w-[130px] h-7 text-xs bg-zinc-900 border-zinc-700/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-zinc-700">
+                        <SelectItem value="rename" className="text-xs">Auto-rename</SelectItem>
+                        <SelectItem value="skip" className="text-xs">Skip</SelectItem>
+                        <SelectItem value="overwrite" className="text-xs">Overwrite</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Reset to defaults */}
+                  {(batchQuality || batchOverwrite) && (
+                    <button
+                      onClick={() => {
+                        setBatchQuality(null)
+                        setBatchOverwrite(null)
+                      }}
+                      className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+                    >
+                      Reset to defaults
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Sticky Bottom Action Bar */}
           <Separator className="bg-zinc-800/50" />
@@ -296,14 +411,16 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
                 </div>
               </div>
 
-              {/* Right: convert button */}
+              {/* Right: advanced toggle + convert button */}
               <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-zinc-500 hover:text-zinc-300"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="text-zinc-500 hover:text-zinc-300 gap-1"
                 >
                   <Settings2 size={16} />
+                  {showAdvanced ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
                 </Button>
                 <Button
                   onClick={handleConvert}

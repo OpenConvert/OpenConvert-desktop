@@ -1,18 +1,42 @@
-import { contextBridge as t, ipcRenderer as e } from "electron";
-t.exposeInMainWorld("electronAPI", {
+import { contextBridge, ipcRenderer } from "electron";
+contextBridge.exposeInMainWorld("electronAPI", {
   // Window controls
-  minimize: () => e.send("window-minimize"),
-  maximize: () => e.send("window-maximize"),
-  close: () => e.send("window-close"),
-  toggleDevTools: () => e.send("toggle-dev-tools"),
+  minimize: () => ipcRenderer.send("window-minimize"),
+  maximize: () => ipcRenderer.send("window-maximize"),
+  close: () => ipcRenderer.send("window-close"),
+  toggleDevTools: () => ipcRenderer.send("toggle-dev-tools"),
   // Window state listener
-  onMaximizeChange: (i) => {
-    const n = (d, o) => i(o);
-    return e.on("window-maximized-changed", n), () => e.removeListener("window-maximized-changed", n);
+  onMaximizeChange: (callback) => {
+    const handler = (_event, isMaximized) => callback(isMaximized);
+    ipcRenderer.on("window-maximized-changed", handler);
+    return () => ipcRenderer.removeListener("window-maximized-changed", handler);
   },
   // File operations
-  openFileDialog: () => e.invoke("open-file-dialog"),
-  selectOutputDir: () => e.invoke("select-output-dir"),
-  getFileInfo: (i) => e.invoke("get-file-info", i),
-  convertFiles: (i) => e.invoke("convert-files", i)
+  openFileDialog: () => ipcRenderer.invoke("open-file-dialog"),
+  selectOutputDir: () => ipcRenderer.invoke("select-output-dir"),
+  getFileInfo: (filePath) => ipcRenderer.invoke("get-file-info", filePath),
+  // Conversion
+  convertFiles: (payload) => ipcRenderer.invoke("convert-files", payload),
+  onConversionProgress: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("conversion-progress", handler);
+    return () => ipcRenderer.removeListener("conversion-progress", handler);
+  },
+  // Thumbnails
+  generateThumbnail: (filePath) => ipcRenderer.invoke("generate-thumbnail", filePath),
+  // History
+  getHistory: (options) => ipcRenderer.invoke("get-history", options),
+  getHistoryStats: () => ipcRenderer.invoke("get-history-stats"),
+  deleteHistoryItem: (id) => ipcRenderer.invoke("delete-history-item", id),
+  clearHistory: () => ipcRenderer.invoke("clear-history"),
+  showInFolder: (filePath) => ipcRenderer.invoke("show-in-folder", filePath),
+  // Settings
+  getSettings: () => ipcRenderer.invoke("get-settings"),
+  getSetting: (key) => ipcRenderer.invoke("get-setting", key),
+  updateSetting: (key, value) => ipcRenderer.invoke("update-setting", key, value),
+  resetSettings: () => ipcRenderer.invoke("reset-settings"),
+  // Utility
+  getAppVersion: () => ipcRenderer.invoke("get-app-version"),
+  getAppPath: (name) => ipcRenderer.invoke("get-app-path", name),
+  openExternal: (url) => ipcRenderer.invoke("open-external", url)
 });

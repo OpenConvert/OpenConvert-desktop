@@ -7,6 +7,7 @@ import renderer from 'vite-plugin-electron-renderer'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: './',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -18,6 +19,13 @@ export default defineConfig({
     electron([
       {
         entry: 'electron/main.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              external: ['sharp', 'better-sqlite3'],
+            },
+          },
+        },
       },
       {
         entry: 'electron/preload.ts',

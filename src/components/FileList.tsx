@@ -1,3 +1,4 @@
+import { useState, useEffect, memo } from 'react'
 import { X, Image, FileText, Film, Music, ArrowRight } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getFileCategory, getTargetFormats, getCategoryColor, getCategoryBgColor, formatFileSize } from '@/lib/formats'
@@ -12,6 +13,7 @@ export interface ConvertFile {
     targetFormat: string
     status: 'pending' | 'converting' | 'done' | 'error'
     progress: number
+    error?: string
 }
 
 interface FileListProps {
@@ -31,6 +33,47 @@ function CategoryIcon({ category }: { category: FileCategory | null }) {
     }
 }
 
+/** Lazy-loaded image thumbnail component */
+const ImageThumbnail = memo(function ImageThumbnail({ filePath }: { filePath: string }) {
+    const [thumbnail, setThumbnail] = useState<string | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+
+    useEffect(() => {
+        let cancelled = false
+        setIsLoading(true)
+
+        window.electronAPI.generateThumbnail(filePath).then((dataUrl) => {
+            if (!cancelled) {
+                setThumbnail(dataUrl)
+                setIsLoading(false)
+            }
+        }).catch(() => {
+            if (!cancelled) setIsLoading(false)
+        })
+
+        return () => { cancelled = true }
+    }, [filePath])
+
+    if (isLoading) {
+        return (
+            <div className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/30 animate-pulse" />
+        )
+    }
+
+    if (!thumbnail) {
+        return null // Will fall back to category icon
+    }
+
+    return (
+        <img
+            src={thumbnail}
+            alt="Preview"
+            className="w-10 h-10 rounded-lg object-cover border border-zinc-700/30"
+            loading="lazy"
+        />
+    )
+})
+
 export default function FileList({ files, onRemoveFile, onTargetFormatChange }: FileListProps) {
     if (files.length === 0) return null
 
@@ -39,6 +82,7 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange }: 
             {files.map((file) => {
                 const category = getFileCategory(file.ext)
                 const targets = getTargetFormats(file.ext)
+                const isImage = category === 'image'
 
                 return (
                     <div
@@ -49,11 +93,17 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange }: 
                                     'border-zinc-800'
                             }`}
                     >
-                        {/* File icon */}
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center border ${category ? getCategoryBgColor(category) : 'bg-zinc-800/50 border-zinc-700/50'
-                            }`}>
-                            <CategoryIcon category={category} />
-                        </div>
+                        {/* File icon / Image preview */}
+                        {isImage ? (
+                            <div className="flex-shrink-0">
+                                <ImageThumbnail filePath={file.path} />
+                            </div>
+                        ) : (
+                            <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center border ${category ? getCategoryBgColor(category) : 'bg-zinc-800/50 border-zinc-700/50'
+                                }`}>
+                                <CategoryIcon category={category} />
+                            </div>
+                        )}
 
                         {/* File info */}
                         <div className="flex-1 min-w-0">
@@ -62,8 +112,16 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange }: 
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-xs text-zinc-600 uppercase font-mono">{file.ext}</span>
-                                <span className="text-xs text-zinc-700">•</span>
+                                <span className="text-xs text-zinc-700">*</span>
                                 <span className="text-xs text-zinc-600">{formatFileSize(file.size)}</span>
+                                {file.error && (
+                                    <>
+                                        <span className="text-xs text-zinc-700">*</span>
+                                        <span className="text-xs text-red-400 truncate max-w-[200px]" title={file.error}>
+                                            {file.error}
+                                        </span>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -96,7 +154,7 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange }: 
                         )}
                         {file.status === 'done' && (
                             <div className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                                <span className="text-emerald-400 text-xs">✓</span>
+                                <span className="text-emerald-400 text-xs">&#x2713;</span>
                             </div>
                         )}
                         {file.status === 'error' && (
@@ -130,4 +188,3 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange }: 
         </div>
     )
 }
-
