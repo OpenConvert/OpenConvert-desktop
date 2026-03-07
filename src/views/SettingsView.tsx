@@ -45,14 +45,12 @@ function ToggleSwitch({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-        checked ? 'bg-violet-600' : 'bg-zinc-700'
-      }`}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${checked ? 'bg-violet-600' : 'bg-zinc-700'
+        }`}
     >
       <span
-        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-          checked ? 'translate-x-[18px]' : 'translate-x-[3px]'
-        }`}
+        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-[18px]' : 'translate-x-[3px]'
+          }`}
       />
     </button>
   )
@@ -123,11 +121,10 @@ export default function SettingsView() {
             <button
               key={id}
               onClick={() => setActiveSection(id)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeSection === id
-                  ? 'bg-zinc-800 text-white'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
-              }`}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeSection === id
+                ? 'bg-zinc-800 text-white'
+                : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
+                }`}
             >
               <Icon size={15} />
               {label}
@@ -204,6 +201,21 @@ export default function SettingsView() {
                   )}
                 </SelectContent>
               </Select>
+            </SettingRow>
+
+            <Separator className="bg-zinc-800/30" />
+
+            <SettingRow
+              label="Developer Tools"
+              description="Open the backend console for debugging and logs"
+            >
+              <button
+                onClick={() => window.electronAPI.toggleDevTools()}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-xs text-zinc-400 hover:text-zinc-300 transition-all"
+              >
+                <Monitor size={13} />
+                Toggle Console
+              </button>
             </SettingRow>
           </div>
         )}
@@ -309,11 +321,10 @@ export default function SettingsView() {
                     <button
                       key={key}
                       onClick={() => updateSetting('theme', key)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                        settings.theme === key
-                          ? 'bg-zinc-800 text-white'
-                          : 'text-zinc-500 hover:text-zinc-300'
-                      }`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${settings.theme === key
+                        ? 'bg-zinc-800 text-white'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
                     >
                       <Icon size={12} />
                       {label}

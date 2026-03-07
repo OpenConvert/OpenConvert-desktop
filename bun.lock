@@ -6,6 +6,7 @@
       "name": "openconvert-vite",
       "dependencies": {
         "@fontsource-variable/geist": "^5.2.8",
+        "@img/sharp-linux-x64": "0.34.5",
         "@tailwindcss/vite": "^4.2.1",
         "better-sqlite3": "^12.6.2",
         "class-variance-authority": "^0.7.1",

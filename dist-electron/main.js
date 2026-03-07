@@ -1,22 +1,18 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
-import path from "path";
-import { fileURLToPath } from "url";
-import fs from "fs/promises";
-import Database from "better-sqlite3";
-import sharp from "sharp";
-let db = null;
-function getDatabase() {
-  if (!db) {
+import { app as f, BrowserWindow as T, ipcMain as u, dialog as _, shell as R } from "electron";
+import d from "path";
+import { fileURLToPath as y } from "url";
+import v from "fs/promises";
+import I from "better-sqlite3";
+import O from "sharp";
+let g = null;
+function m() {
+  if (!g)
     throw new Error("Database not initialized. Call initDatabase() first.");
-  }
-  return db;
+  return g;
 }
-function initDatabase() {
-  const dbPath = path.join(app.getPath("userData"), "openconvert.db");
-  console.log("[database] Initializing database at:", dbPath);
-  db = new Database(dbPath);
-  db.pragma("journal_mode = WAL");
-  db.exec(`
+function D() {
+  const e = d.join(f.getPath("userData"), "openconvert.db");
+  console.log("[database] Initializing database at:", e), g = new I(e), g.pragma("journal_mode = WAL"), g.exec(`
         CREATE TABLE IF NOT EXISTS conversions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             created_at INTEGER NOT NULL,
@@ -38,254 +34,209 @@ function initDatabase() {
 
         CREATE INDEX IF NOT EXISTS idx_conversions_created_at ON conversions(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_conversions_status ON conversions(status);
-    `);
-  console.log("[database] Database initialized successfully.");
+    `), console.log("[database] Database initialized successfully.");
 }
-function insertConversion(data) {
-  const db2 = getDatabase();
-  const stmt = db2.prepare(`
+function S(e) {
+  const o = m().prepare(`
         INSERT INTO conversions (created_at, source_path, source_name, source_ext, source_size, target_format, output_path, status, error_message, duration_ms)
         VALUES (@created_at, @source_path, @source_name, @source_ext, @source_size, @target_format, @output_path, @status, @error_message, @duration_ms)
-    `);
-  const result = stmt.run(data);
-  return { ...data, id: result.lastInsertRowid };
+    `).run(e);
+  return { ...e, id: o.lastInsertRowid };
 }
-function getConversions(limit = 50, offset = 0) {
-  const db2 = getDatabase();
-  const items = db2.prepare(`
+function F(e = 50, t = 0) {
+  const n = m(), o = n.prepare(`
         SELECT * FROM conversions ORDER BY created_at DESC LIMIT ? OFFSET ?
-    `).all(limit, offset);
-  const countResult = db2.prepare("SELECT COUNT(*) as count FROM conversions").get();
-  return { items, total: countResult.count };
+    `).all(e, t), i = n.prepare("SELECT COUNT(*) as count FROM conversions").get();
+  return { items: o, total: i.count };
 }
-function getConversionsByStatus(status, limit = 50, offset = 0) {
-  const db2 = getDatabase();
-  const items = db2.prepare(`
+function x(e, t = 50, n = 0) {
+  const o = m(), i = o.prepare(`
         SELECT * FROM conversions WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?
-    `).all(status, limit, offset);
-  const countResult = db2.prepare("SELECT COUNT(*) as count FROM conversions WHERE status = ?").get(status);
-  return { items, total: countResult.count };
+    `).all(e, t, n), r = o.prepare("SELECT COUNT(*) as count FROM conversions WHERE status = ?").get(e);
+  return { items: i, total: r.count };
 }
-function searchConversions(query, limit = 50, offset = 0) {
-  const db2 = getDatabase();
-  const pattern = `%${query}%`;
-  const items = db2.prepare(`
+function N(e, t = 50, n = 0) {
+  const o = m(), i = `%${e}%`, r = o.prepare(`
         SELECT * FROM conversions WHERE source_name LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?
-    `).all(pattern, limit, offset);
-  const countResult = db2.prepare("SELECT COUNT(*) as count FROM conversions WHERE source_name LIKE ?").get(pattern);
-  return { items, total: countResult.count };
+    `).all(i, t, n), p = o.prepare("SELECT COUNT(*) as count FROM conversions WHERE source_name LIKE ?").get(i);
+  return { items: r, total: p.count };
 }
-function deleteConversion(id) {
-  const db2 = getDatabase();
-  const result = db2.prepare("DELETE FROM conversions WHERE id = ?").run(id);
-  return result.changes > 0;
+function M(e) {
+  return m().prepare("DELETE FROM conversions WHERE id = ?").run(e).changes > 0;
 }
-function clearAllConversions() {
-  const db2 = getDatabase();
-  const result = db2.prepare("DELETE FROM conversions").run();
-  return result.changes;
+function A() {
+  return m().prepare("DELETE FROM conversions").run().changes;
 }
-function getConversionStats() {
-  const db2 = getDatabase();
-  const total = db2.prepare("SELECT COUNT(*) as count FROM conversions").get().count;
-  const completed = db2.prepare("SELECT COUNT(*) as count FROM conversions WHERE status = ?").get("completed").count;
-  const failed = db2.prepare("SELECT COUNT(*) as count FROM conversions WHERE status = ?").get("failed").count;
-  return { total, completed, failed };
+function U() {
+  const e = m(), t = e.prepare("SELECT COUNT(*) as count FROM conversions").get().count, n = e.prepare("SELECT COUNT(*) as count FROM conversions WHERE status = ?").get("completed").count, o = e.prepare("SELECT COUNT(*) as count FROM conversions WHERE status = ?").get("failed").count;
+  return { total: t, completed: n, failed: o };
 }
-function getSetting(key) {
-  const db2 = getDatabase();
-  const row = db2.prepare("SELECT value FROM settings WHERE key = ?").get(key);
-  return row?.value ?? null;
+function P(e) {
+  return m().prepare("SELECT value FROM settings WHERE key = ?").get(e)?.value ?? null;
 }
-function setSetting(key, value) {
-  const db2 = getDatabase();
-  db2.prepare(`
+function z(e, t) {
+  m().prepare(`
         INSERT INTO settings (key, value) VALUES (?, ?)
         ON CONFLICT(key) DO UPDATE SET value = excluded.value
-    `).run(key, value);
+    `).run(e, t);
 }
-function getAllSettings() {
-  const db2 = getDatabase();
-  const rows = db2.prepare("SELECT key, value FROM settings").all();
-  const result = {};
-  for (const row of rows) {
-    result[row.key] = row.value;
-  }
-  return result;
+function j() {
+  const t = m().prepare("SELECT key, value FROM settings").all(), n = {};
+  for (const o of t)
+    n[o.key] = o.value;
+  return n;
 }
-function resetAllSettings() {
-  const db2 = getDatabase();
-  db2.prepare("DELETE FROM settings").run();
+function k() {
+  m().prepare("DELETE FROM settings").run();
 }
-function closeDatabase() {
-  if (db) {
-    db.close();
-    db = null;
-    console.log("[database] Database closed.");
-  }
+function V() {
+  g && (g.close(), g = null, console.log("[database] Database closed."));
 }
-const SHARP_FORMATS = ["png", "jpg", "jpeg", "webp", "gif", "avif", "tiff", "tif", "jxl"];
-const SPECIAL_INPUT_FORMATS = ["svg", "ico", "bmp"];
-function isImageFormat(ext) {
-  const lower = ext.toLowerCase();
-  return [...SHARP_FORMATS, ...SPECIAL_INPUT_FORMATS].includes(lower);
+const W = ["png", "jpg", "jpeg", "webp", "gif", "avif", "tiff", "tif", "jxl"], X = ["svg", "ico", "bmp"];
+function L(e) {
+  const t = e.toLowerCase();
+  return [...W, ...X].includes(t);
 }
-async function resolveOutputPath(outputDir, baseName, targetFormat, overwriteBehavior) {
-  const ext = targetFormat === "jpg" ? "jpg" : targetFormat;
-  const outputPath = path.join(outputDir, `${baseName}.${ext}`);
+async function $(e, t, n, o) {
+  const i = n === "jpg" ? "jpg" : n, r = d.join(e, `${t}.${i}`);
   try {
-    await fs.access(outputPath);
-    if (overwriteBehavior === "overwrite") {
-      return { path: outputPath, skip: false };
-    }
-    if (overwriteBehavior === "skip") {
-      return { path: outputPath, skip: true };
-    }
-    let counter = 1;
-    let newPath;
+    if (await v.access(r), o === "overwrite")
+      return { path: r, skip: !1 };
+    if (o === "skip")
+      return { path: r, skip: !0 };
+    let p = 1, l;
     do {
-      newPath = path.join(outputDir, `${baseName} (${counter}).${ext}`);
-      counter++;
+      l = d.join(e, `${t} (${p}).${i}`), p++;
       try {
-        await fs.access(newPath);
+        await v.access(l);
       } catch {
-        return { path: newPath, skip: false };
+        return { path: l, skip: !1 };
       }
-    } while (counter < 1e4);
-    return { path: newPath, skip: false };
+    } while (p < 1e4);
+    return { path: l, skip: !1 };
   } catch {
-    return { path: outputPath, skip: false };
+    return { path: r, skip: !1 };
   }
 }
-function getBaseName(filePath) {
-  const name = path.basename(filePath);
-  const lastDot = name.lastIndexOf(".");
-  if (lastDot === -1) return name;
-  return name.substring(0, lastDot);
+function B(e) {
+  const t = d.basename(e), n = t.lastIndexOf(".");
+  return n === -1 ? t : t.substring(0, n);
 }
-async function convertImage(options) {
-  const startTime = Date.now();
-  const { sourcePath, outputDir, targetFormat, quality, overwriteBehavior } = options;
+async function H(e) {
+  const t = Date.now(), { sourcePath: n, outputDir: o, targetFormat: i, quality: r, overwriteBehavior: p } = e;
   try {
-    await fs.access(sourcePath);
-    await fs.mkdir(outputDir, { recursive: true });
-    const baseName = getBaseName(sourcePath);
-    const { path: outputPath, skip } = await resolveOutputPath(
-      outputDir,
-      baseName,
-      targetFormat,
-      overwriteBehavior
+    await v.access(n), await v.mkdir(o, { recursive: !0 });
+    const l = B(n), { path: c, skip: E } = await $(
+      o,
+      l,
+      i,
+      p
     );
-    if (skip) {
+    if (E)
       return {
-        success: true,
-        outputPath,
-        durationMs: Date.now() - startTime
+        success: !0,
+        outputPath: c,
+        durationMs: Date.now() - t
       };
-    }
-    let pipeline = sharp(sourcePath, {
-      animated: false,
+    let s = O(n, {
+      animated: !1,
       // Don't process animated frames for conversion
       failOn: "none"
       // Don't fail on minor image issues
     });
-    const format = targetFormat.toLowerCase();
-    switch (format) {
+    const w = i.toLowerCase();
+    switch (w) {
       case "png":
-        pipeline = pipeline.png({
-          quality,
-          compressionLevel: quality >= 90 ? 6 : quality >= 60 ? 7 : 9
+        s = s.png({
+          quality: r,
+          compressionLevel: r >= 90 ? 6 : r >= 60 ? 7 : 9
         });
         break;
       case "jpg":
       case "jpeg":
-        pipeline = pipeline.jpeg({
-          quality,
-          mozjpeg: true
+        s = s.jpeg({
+          quality: r,
+          mozjpeg: !0
           // Better compression
         });
         break;
       case "webp":
-        pipeline = pipeline.webp({
-          quality,
-          lossless: quality >= 100
+        s = s.webp({
+          quality: r,
+          lossless: r >= 100
         });
         break;
       case "avif":
-        pipeline = pipeline.avif({
-          quality,
-          lossless: quality >= 100
+        s = s.avif({
+          quality: r,
+          lossless: r >= 100
         });
         break;
       case "gif":
-        pipeline = pipeline.gif();
+        s = s.gif();
         break;
       case "tiff":
       case "tif":
-        pipeline = pipeline.tiff({
-          quality,
+        s = s.tiff({
+          quality: r,
           compression: "lzw"
         });
         break;
       case "jxl":
-        pipeline = pipeline.jxl({
-          quality,
-          lossless: quality >= 100
+        s = s.jxl({
+          quality: r,
+          lossless: r >= 100
         });
         break;
       case "bmp":
-        pipeline = pipeline.png({ compressionLevel: 0 });
+        s = s.png({ compressionLevel: 0 });
         break;
       case "ico":
-        pipeline = pipeline.resize(256, 256, { fit: "inside", withoutEnlargement: true }).png();
+        s = s.resize(256, 256, { fit: "inside", withoutEnlargement: !0 }).png();
         break;
       case "pdf":
         return {
-          success: false,
+          success: !1,
           outputPath: "",
           error: "Image to PDF conversion is not yet supported. A document converter is required.",
-          durationMs: Date.now() - startTime
+          durationMs: Date.now() - t
         };
       default:
         return {
-          success: false,
+          success: !1,
           outputPath: "",
-          error: `Unsupported target format: ${format}`,
-          durationMs: Date.now() - startTime
+          error: `Unsupported target format: ${w}`,
+          durationMs: Date.now() - t
         };
     }
-    await pipeline.toFile(outputPath);
-    return {
-      success: true,
-      outputPath,
-      durationMs: Date.now() - startTime
+    return await s.toFile(c), {
+      success: !0,
+      outputPath: c,
+      durationMs: Date.now() - t
     };
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error(`[image-converter] Failed to convert ${sourcePath}:`, errorMessage);
-    return {
-      success: false,
+  } catch (l) {
+    const c = l instanceof Error ? l.message : String(l);
+    return console.error(`[image-converter] Failed to convert ${n}:`, c), {
+      success: !1,
       outputPath: "",
-      error: errorMessage,
-      durationMs: Date.now() - startTime
+      error: c,
+      durationMs: Date.now() - t
     };
   }
 }
-async function generateThumbnail(filePath, size = 128) {
+async function q(e, t = 128) {
   try {
-    const buffer = await sharp(filePath, {
+    return `data:image/png;base64,${(await O(e, {
       failOn: "none"
-    }).resize(size, size, {
+    }).resize(t, t, {
       fit: "cover",
       position: "centre"
-    }).png({ quality: 70, compressionLevel: 9 }).toBuffer();
-    return `data:image/png;base64,${buffer.toString("base64")}`;
-  } catch (err) {
-    console.error(`[image-converter] Failed to generate thumbnail for ${filePath}:`, err);
-    return null;
+    }).png({ quality: 70, compressionLevel: 9 }).toBuffer()).toString("base64")}`;
+  } catch (n) {
+    return console.error(`[image-converter] Failed to generate thumbnail for ${e}:`, n), null;
   }
 }
-const IMAGE_FORMATS = /* @__PURE__ */ new Set([
+const Y = /* @__PURE__ */ new Set([
   "png",
   "jpg",
   "jpeg",
@@ -298,8 +249,7 @@ const IMAGE_FORMATS = /* @__PURE__ */ new Set([
   "svg",
   "ico",
   "jxl"
-]);
-const DOCUMENT_FORMATS = /* @__PURE__ */ new Set([
+]), G = /* @__PURE__ */ new Set([
   "pdf",
   "epub",
   "xps",
@@ -310,8 +260,7 @@ const DOCUMENT_FORMATS = /* @__PURE__ */ new Set([
   "txt",
   "rtf",
   "odt"
-]);
-const VIDEO_FORMATS = /* @__PURE__ */ new Set([
+]), K = /* @__PURE__ */ new Set([
   "mp4",
   "mkv",
   "avi",
@@ -320,8 +269,7 @@ const VIDEO_FORMATS = /* @__PURE__ */ new Set([
   "3gp",
   "flv",
   "wmv"
-]);
-const AUDIO_FORMATS = /* @__PURE__ */ new Set([
+]), J = /* @__PURE__ */ new Set([
   "mp3",
   "wav",
   "aac",
@@ -330,108 +278,65 @@ const AUDIO_FORMATS = /* @__PURE__ */ new Set([
   "wma",
   "m4a"
 ]);
-function getConverterCategory(ext) {
-  const lower = ext.toLowerCase();
-  if (IMAGE_FORMATS.has(lower)) return "image";
-  if (DOCUMENT_FORMATS.has(lower)) return "document";
-  if (VIDEO_FORMATS.has(lower)) return "video";
-  if (AUDIO_FORMATS.has(lower)) return "audio";
-  return null;
+function Q(e) {
+  const t = e.toLowerCase();
+  return Y.has(t) ? "image" : G.has(t) ? "document" : K.has(t) ? "video" : J.has(t) ? "audio" : null;
 }
-const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
-const isDev = !!process.env.VITE_DEV_SERVER_URL;
-let mainWindow = null;
-function createWindow() {
-  mainWindow = new BrowserWindow({
+const h = d.dirname(y(import.meta.url)), b = !!process.env.VITE_DEV_SERVER_URL;
+let a = null;
+function C() {
+  a = new T({
     width: 1100,
     height: 750,
     minWidth: 800,
     minHeight: 600,
-    frame: false,
+    frame: !1,
     backgroundColor: "#0a0a0b",
     webPreferences: {
-      preload: path.join(__dirname$1, "preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-      devTools: true
+      preload: d.join(h, "preload.js"),
+      contextIsolation: !0,
+      nodeIntegration: !1,
+      sandbox: !1,
+      devTools: !0
     }
-  });
-  mainWindow.on("maximize", () => {
-    mainWindow?.webContents.send("window-maximized-changed", true);
-  });
-  mainWindow.on("unmaximize", () => {
-    mainWindow?.webContents.send("window-maximized-changed", false);
-  });
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-  });
-  console.log("[main] isDev:", isDev);
-  console.log("[main] VITE_DEV_SERVER_URL:", process.env.VITE_DEV_SERVER_URL);
-  if (isDev) {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    console.log("[main] Dev server URL loaded.");
-  } else {
-    mainWindow.loadFile(path.join(__dirname$1, "../dist/index.html"));
-  }
-  let devToolsWindow = null;
-  ipcMain.removeAllListeners("toggle-dev-tools");
-  ipcMain.on("toggle-dev-tools", () => {
-    console.log("[main] toggle-dev-tools IPC received");
-    if (!mainWindow) return;
-    if (mainWindow.webContents.isDevToolsOpened()) {
-      console.log("[main] Closing DevTools");
-      mainWindow.webContents.closeDevTools();
-      if (devToolsWindow && !devToolsWindow.isDestroyed()) {
-        devToolsWindow.close();
-      }
-      devToolsWindow = null;
-    } else {
-      console.log("[main] Opening Custom DevTools Window");
-      if (!devToolsWindow || devToolsWindow.isDestroyed()) {
-        devToolsWindow = new BrowserWindow({
-          width: 800,
-          height: 600,
-          title: "OpenConvert Developer Tools"
-        });
-        devToolsWindow.on("closed", () => {
-          devToolsWindow = null;
-        });
-      }
-      mainWindow.webContents.setDevToolsWebContents(devToolsWindow.webContents);
-      mainWindow.webContents.openDevTools({ mode: "detach" });
-    }
+  }), a.on("maximize", () => {
+    a?.webContents.send("window-maximized-changed", !0);
+  }), a.on("unmaximize", () => {
+    a?.webContents.send("window-maximized-changed", !1);
+  }), a.on("closed", () => {
+    a = null;
+  }), console.log("[main] isDev:", b), console.log("[main] VITE_DEV_SERVER_URL:", process.env.VITE_DEV_SERVER_URL), b ? (a.loadURL(process.env.VITE_DEV_SERVER_URL), console.log("[main] Dev server URL loaded.")) : a.loadFile(d.join(h, "../dist/index.html"));
+  let e = null;
+  u.removeAllListeners("toggle-dev-tools"), u.on("toggle-dev-tools", () => {
+    console.log("[main] toggle-dev-tools IPC received"), a && (a.webContents.isDevToolsOpened() ? (console.log("[main] Closing DevTools"), a.webContents.closeDevTools(), e && !e.isDestroyed() && e.close(), e = null) : (console.log("[main] Opening Custom DevTools Window"), (!e || e.isDestroyed()) && (e = new T({
+      width: 800,
+      height: 600,
+      title: "OpenConvert Developer Tools"
+    }), e.on("closed", () => {
+      e = null;
+    })), a.webContents.setDevToolsWebContents(e.webContents), a.webContents.openDevTools({ mode: "detach" })));
   });
 }
-app.whenReady().then(() => {
-  initDatabase();
-  createWindow();
+f.whenReady().then(() => {
+  D(), C();
 });
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+f.on("window-all-closed", () => {
+  process.platform !== "darwin" && f.quit();
 });
-app.on("will-quit", () => {
-  closeDatabase();
+f.on("will-quit", () => {
+  V();
 });
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+f.on("activate", () => {
+  T.getAllWindows().length === 0 && C();
 });
-ipcMain.on("window-minimize", () => mainWindow?.minimize());
-ipcMain.on("window-maximize", () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow.unmaximize();
-  } else {
-    mainWindow?.maximize();
-  }
+u.on("window-minimize", () => a?.minimize());
+u.on("window-maximize", () => {
+  a?.isMaximized() ? a.unmaximize() : a?.maximize();
 });
-ipcMain.on("window-close", () => mainWindow?.close());
-ipcMain.handle("open-file-dialog", async () => {
-  if (!mainWindow) return [];
-  const result = await dialog.showOpenDialog(mainWindow, {
+u.on("window-close", () => a?.close());
+u.handle("open-file-dialog", async () => {
+  if (!a) return [];
+  const e = await _.showOpenDialog(a, {
     properties: ["openFile", "multiSelections"],
     filters: [
       {
@@ -483,211 +388,156 @@ ipcMain.handle("open-file-dialog", async () => {
       { name: "All Files", extensions: ["*"] }
     ]
   });
-  if (result.canceled) return [];
-  const fileInfos = await Promise.all(
-    result.filePaths.map(async (filePath) => {
-      const stat = await fs.stat(filePath);
+  return e.canceled ? [] : await Promise.all(
+    e.filePaths.map(async (n) => {
+      const o = await v.stat(n);
       return {
-        path: filePath,
-        name: path.basename(filePath),
-        ext: path.extname(filePath).slice(1).toLowerCase(),
-        size: stat.size
+        path: n,
+        name: d.basename(n),
+        ext: d.extname(n).slice(1).toLowerCase(),
+        size: o.size
       };
     })
   );
-  return fileInfos;
 });
-ipcMain.handle("select-output-dir", async () => {
-  if (!mainWindow) return null;
-  const result = await dialog.showOpenDialog(mainWindow, {
+u.handle("select-output-dir", async () => {
+  if (!a) return null;
+  const e = await _.showOpenDialog(a, {
     properties: ["openDirectory", "createDirectory"]
   });
-  if (result.canceled) return null;
-  return result.filePaths[0];
+  return e.canceled ? null : e.filePaths[0];
 });
-ipcMain.handle("get-file-info", async (_event, filePath) => {
+u.handle("get-file-info", async (e, t) => {
   try {
-    const stat = await fs.stat(filePath);
+    const n = await v.stat(t);
     return {
-      path: filePath,
-      name: path.basename(filePath),
-      ext: path.extname(filePath).slice(1).toLowerCase(),
-      size: stat.size
+      path: t,
+      name: d.basename(t),
+      ext: d.extname(t).slice(1).toLowerCase(),
+      size: n.size
     };
   } catch {
     return null;
   }
 });
-async function processWithConcurrency(items, concurrency, processor) {
-  const results = [];
-  const executing = /* @__PURE__ */ new Set();
-  for (const item of items) {
-    const promise = (async () => {
-      const result = await processor(item);
-      results.push(result);
+async function Z(e, t, n) {
+  const o = [], i = /* @__PURE__ */ new Set();
+  for (const r of e) {
+    const p = (async () => {
+      const l = await n(r);
+      o.push(l);
     })();
-    executing.add(promise);
-    promise.finally(() => executing.delete(promise));
-    if (executing.size >= concurrency) {
-      await Promise.race(executing);
-    }
+    i.add(p), p.finally(() => i.delete(p)), i.size >= t && await Promise.race(i);
   }
-  await Promise.all(executing);
-  return results;
+  return await Promise.all(i), o;
 }
-ipcMain.handle("convert-files", async (_event, payload) => {
-  console.log("[main] Received conversion payload:", JSON.stringify(payload, null, 2));
+u.handle("convert-files", async (e, t) => {
+  console.log("[main] Received conversion payload:", JSON.stringify(t, null, 2));
   const {
-    targetDirectory,
-    filesToConvert,
-    quality = 90,
-    concurrency = 3,
-    overwriteBehavior = "rename"
-  } = payload;
-  const results = [];
-  await processWithConcurrency(filesToConvert, concurrency, async (file) => {
-    const category = getConverterCategory(file.sourceExt);
-    mainWindow?.webContents.send("conversion-progress", {
-      fileId: file.fileId,
+    targetDirectory: n,
+    filesToConvert: o,
+    quality: i = 90,
+    concurrency: r = 3,
+    overwriteBehavior: p = "rename"
+  } = t, l = [];
+  return await Z(o, r, async (c) => {
+    const E = Q(c.sourceExt);
+    a?.webContents.send("conversion-progress", {
+      fileId: c.fileId,
       progress: 10,
       status: "converting"
     });
-    let result;
-    if (category === "image" && isImageFormat(file.sourceExt)) {
-      mainWindow?.webContents.send("conversion-progress", {
-        fileId: file.fileId,
-        progress: 30,
-        status: "converting"
-      });
-      result = await convertImage({
-        sourcePath: file.sourcePath,
-        outputDir: targetDirectory,
-        targetFormat: file.targetFormat,
-        quality,
-        overwriteBehavior
-      });
-      mainWindow?.webContents.send("conversion-progress", {
-        fileId: file.fileId,
-        progress: 90,
-        status: "converting"
-      });
-    } else if (category === "document") {
-      result = {
-        success: false,
-        outputPath: "",
-        error: "Document conversion requires Pandoc to be installed. Please install Pandoc (https://pandoc.org) and try again.",
-        durationMs: 0
-      };
-    } else if (category === "video") {
-      result = {
-        success: false,
-        outputPath: "",
-        error: "Video conversion requires FFmpeg to be installed. Please install FFmpeg (https://ffmpeg.org) and try again.",
-        durationMs: 0
-      };
-    } else if (category === "audio") {
-      result = {
-        success: false,
-        outputPath: "",
-        error: "Audio conversion requires FFmpeg to be installed. Please install FFmpeg (https://ffmpeg.org) and try again.",
-        durationMs: 0
-      };
-    } else {
-      result = {
-        success: false,
-        outputPath: "",
-        error: `Unsupported file format: .${file.sourceExt}`,
-        durationMs: 0
-      };
-    }
+    let s;
+    E === "image" && L(c.sourceExt) ? (a?.webContents.send("conversion-progress", {
+      fileId: c.fileId,
+      progress: 30,
+      status: "converting"
+    }), s = await H({
+      sourcePath: c.sourcePath,
+      outputDir: n,
+      targetFormat: c.targetFormat,
+      quality: i,
+      overwriteBehavior: p
+    }), a?.webContents.send("conversion-progress", {
+      fileId: c.fileId,
+      progress: 90,
+      status: "converting"
+    })) : E === "document" ? s = {
+      success: !1,
+      outputPath: "",
+      error: "Document conversion requires Pandoc to be installed. Please install Pandoc (https://pandoc.org) and try again.",
+      durationMs: 0
+    } : E === "video" ? s = {
+      success: !1,
+      outputPath: "",
+      error: "Video conversion requires FFmpeg to be installed. Please install FFmpeg (https://ffmpeg.org) and try again.",
+      durationMs: 0
+    } : E === "audio" ? s = {
+      success: !1,
+      outputPath: "",
+      error: "Audio conversion requires FFmpeg to be installed. Please install FFmpeg (https://ffmpeg.org) and try again.",
+      durationMs: 0
+    } : s = {
+      success: !1,
+      outputPath: "",
+      error: `Unsupported file format: .${c.sourceExt}`,
+      durationMs: 0
+    };
     try {
-      insertConversion({
+      S({
         created_at: Date.now(),
-        source_path: file.sourcePath,
-        source_name: file.sourceName,
-        source_ext: file.sourceExt,
-        source_size: file.sourceSize,
-        target_format: file.targetFormat,
-        output_path: result.outputPath || "",
-        status: result.success ? "completed" : "failed",
-        error_message: result.error ?? null,
-        duration_ms: result.durationMs
+        source_path: c.sourcePath,
+        source_name: c.sourceName,
+        source_ext: c.sourceExt,
+        source_size: c.sourceSize,
+        target_format: c.targetFormat,
+        output_path: s.outputPath || "",
+        status: s.success ? "completed" : "failed",
+        error_message: s.error ?? null,
+        duration_ms: s.durationMs
       });
-    } catch (dbErr) {
-      console.error("[main] Failed to save conversion history:", dbErr);
+    } catch (w) {
+      console.error("[main] Failed to save conversion history:", w);
     }
-    mainWindow?.webContents.send("conversion-progress", {
-      fileId: file.fileId,
+    a?.webContents.send("conversion-progress", {
+      fileId: c.fileId,
       progress: 100,
-      status: result.success ? "done" : "error",
-      error: result.error
+      status: s.success ? "done" : "error",
+      error: s.error
+    }), l.push({
+      fileId: c.fileId,
+      success: s.success,
+      outputPath: s.outputPath,
+      error: s.error
     });
-    results.push({
-      fileId: file.fileId,
-      success: result.success,
-      outputPath: result.outputPath,
-      error: result.error
-    });
-  });
-  return { success: true, results };
+  }), { success: !0, results: l };
 });
-ipcMain.handle("generate-thumbnail", async (_event, filePath) => {
+u.handle("generate-thumbnail", async (e, t) => {
   try {
-    const ext = path.extname(filePath).slice(1).toLowerCase();
-    if (!isImageFormat(ext)) return null;
-    return await generateThumbnail(filePath, 128);
+    const n = d.extname(t).slice(1).toLowerCase();
+    return L(n) ? await q(t, 128) : null;
   } catch {
     return null;
   }
 });
-ipcMain.handle("get-history", async (_event, options) => {
-  const { limit = 50, offset = 0, status, search } = options;
-  if (search && search.trim().length > 0) {
-    return searchConversions(search.trim(), limit, offset);
-  }
-  if (status && status !== "all") {
-    return getConversionsByStatus(status, limit, offset);
-  }
-  return getConversions(limit, offset);
+u.handle("get-history", async (e, t) => {
+  const { limit: n = 50, offset: o = 0, status: i, search: r } = t;
+  return r && r.trim().length > 0 ? N(r.trim(), n, o) : i && i !== "all" ? x(i, n, o) : F(n, o);
 });
-ipcMain.handle("get-history-stats", async () => {
-  return getConversionStats();
-});
-ipcMain.handle("delete-history-item", async (_event, id) => {
-  return deleteConversion(id);
-});
-ipcMain.handle("clear-history", async () => {
-  return clearAllConversions();
-});
-ipcMain.handle("show-in-folder", async (_event, filePath) => {
-  shell.showItemInFolder(filePath);
-  return true;
-});
-ipcMain.handle("get-settings", async () => {
-  return getAllSettings();
-});
-ipcMain.handle("get-setting", async (_event, key) => {
-  return getSetting(key);
-});
-ipcMain.handle("update-setting", async (_event, key, value) => {
-  setSetting(key, value);
-  return true;
-});
-ipcMain.handle("reset-settings", async () => {
-  resetAllSettings();
-  return true;
-});
-ipcMain.handle("get-app-version", async () => {
-  return app.getVersion();
-});
-ipcMain.handle("get-app-path", async (_event, name) => {
+u.handle("get-history-stats", async () => U());
+u.handle("delete-history-item", async (e, t) => M(t));
+u.handle("clear-history", async () => A());
+u.handle("show-in-folder", async (e, t) => (R.showItemInFolder(t), !0));
+u.handle("get-settings", async () => j());
+u.handle("get-setting", async (e, t) => P(t));
+u.handle("update-setting", async (e, t, n) => (z(t, n), !0));
+u.handle("reset-settings", async () => (k(), !0));
+u.handle("get-app-version", async () => f.getVersion());
+u.handle("get-app-path", async (e, t) => {
   try {
-    return app.getPath(name);
+    return f.getPath(t);
   } catch {
     return null;
   }
 });
-ipcMain.handle("open-external", async (_event, url) => {
-  await shell.openExternal(url);
-  return true;
-});
+u.handle("open-external", async (e, t) => (await R.openExternal(t), !0));
