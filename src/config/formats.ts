@@ -12,9 +12,9 @@
  * 
  * Current implementation status:
  * - ✅ Images: Fully supported via Sharp library (built-in)
- * - ❌ Documents: Requires Pandoc (external installation)
- * - ❌ Video: Requires FFmpeg (external installation)
- * - ❌ Audio: Requires FFmpeg (external installation)
+ * - ✅ Documents: Supported via Pandoc (requires external installation)
+ * - ✅ Video: Supported via FFmpeg (requires external installation)
+ * - ✅ Audio: Supported via FFmpeg (requires external installation)
  * ============================================================================
  */
 
@@ -107,7 +107,8 @@ export const FORMAT_MAP: Record<string, FormatInfo> = {
     },
 
     // ========================================
-    // DOCUMENT FORMATS (❌ REQUIRES PANDOC)
+    // DOCUMENT FORMATS (✅ SUPPORTED VIA PANDOC)
+    // Note: PDF as input is NOT supported by Pandoc
     // ========================================
     pdf: { 
         category: 'document', 
@@ -171,7 +172,7 @@ export const FORMAT_MAP: Record<string, FormatInfo> = {
     },
 
     // ========================================
-    // VIDEO FORMATS (❌ REQUIRES FFMPEG)
+    // VIDEO FORMATS (✅ SUPPORTED VIA FFMPEG)
     // ========================================
     mp4: { 
         category: 'video', 
@@ -223,7 +224,7 @@ export const FORMAT_MAP: Record<string, FormatInfo> = {
     },
 
     // ========================================
-    // AUDIO FORMATS (❌ REQUIRES FFMPEG)
+    // AUDIO FORMATS (✅ SUPPORTED VIA FFMPEG)
     // ========================================
     mp3: { 
         category: 'audio', 

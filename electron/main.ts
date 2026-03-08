@@ -21,8 +21,15 @@ import {
 import {
     convertImage,
     isImageFormat,
+    convertVideo,
+    isVideoFormat,
+    convertAudio,
+    isAudioFormat,
+    convertDocument,
+    isDocumentFormat,
     getConverterCategory,
-    generateThumbnail,
+    generateImageThumbnail,
+    generateVideoThumbnail,
 } from './converters'
 import { getFileDialogFilters } from './config/formats'
 
@@ -298,27 +305,53 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
                 progress: 90,
                 status: 'converting',
             })
-        } else if (category === 'document') {
-            result = {
-                success: false,
-                outputPath: '',
-                error: 'Document conversion requires Pandoc to be installed. Please install Pandoc (https://pandoc.org) and try again.',
-                durationMs: 0,
-            }
-        } else if (category === 'video') {
-            result = {
-                success: false,
-                outputPath: '',
-                error: 'Video conversion requires FFmpeg to be installed. Please install FFmpeg (https://ffmpeg.org) and try again.',
-                durationMs: 0,
-            }
-        } else if (category === 'audio') {
-            result = {
-                success: false,
-                outputPath: '',
-                error: 'Audio conversion requires FFmpeg to be installed. Please install FFmpeg (https://ffmpeg.org) and try again.',
-                durationMs: 0,
-            }
+        } else if (category === 'video' && isVideoFormat(file.sourceExt)) {
+            // Video conversion with progress tracking
+            result = await convertVideo({
+                sourcePath: file.sourcePath,
+                outputDir: targetDirectory,
+                targetFormat: file.targetFormat,
+                quality,
+                overwriteBehavior,
+                onProgress: (percent) => {
+                    mainWindow?.webContents.send('conversion-progress', {
+                        fileId: file.fileId,
+                        progress: percent,
+                        status: 'converting',
+                    })
+                },
+            })
+        } else if (category === 'audio' && isAudioFormat(file.sourceExt)) {
+            // Audio conversion with progress tracking
+            result = await convertAudio({
+                sourcePath: file.sourcePath,
+                outputDir: targetDirectory,
+                targetFormat: file.targetFormat,
+                quality,
+                overwriteBehavior,
+                onProgress: (percent) => {
+                    mainWindow?.webContents.send('conversion-progress', {
+                        fileId: file.fileId,
+                        progress: percent,
+                        status: 'converting',
+                    })
+                },
+            })
+        } else if (category === 'document' && isDocumentFormat(file.sourceExt)) {
+            // Document conversion (no progress tracking available from Pandoc)
+            mainWindow?.webContents.send('conversion-progress', {
+                fileId: file.fileId,
+                progress: 50,
+                status: 'converting',
+            })
+
+            result = await convertDocument({
+                sourcePath: file.sourcePath,
+                outputDir: targetDirectory,
+                targetFormat: file.targetFormat,
+                quality,
+                overwriteBehavior,
+            })
         } else {
             result = {
                 success: false,
@@ -372,8 +405,18 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
 ipcMain.handle('generate-thumbnail', async (_event, filePath: string) => {
     try {
         const ext = path.extname(filePath).slice(1).toLowerCase()
-        if (!isImageFormat(ext)) return null
-        return await generateThumbnail(filePath, 128)
+        
+        // Try image thumbnail first
+        if (isImageFormat(ext)) {
+            return await generateImageThumbnail(filePath, 128)
+        }
+        
+        // Try video thumbnail
+        if (isVideoFormat(ext)) {
+            return await generateVideoThumbnail(filePath, 128)
+        }
+        
+        return null
     } catch {
         return null
     }

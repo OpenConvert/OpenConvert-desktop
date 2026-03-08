@@ -4,6 +4,8 @@ import { fileURLToPath } from "url";
 import fs from "fs/promises";
 import Database from "better-sqlite3";
 import sharp from "sharp";
+import { spawn } from "child_process";
+import { platform } from "os";
 let db = null;
 function getDatabase() {
   if (!db) {
@@ -220,7 +222,7 @@ function isImageFormat(ext) {
   const lower = ext.toLowerCase();
   return [...SHARP_FORMATS, ...SPECIAL_INPUT_FORMATS].includes(lower);
 }
-async function resolveOutputPath(outputDir, baseName, targetFormat, overwriteBehavior) {
+async function resolveOutputPath$3(outputDir, baseName, targetFormat, overwriteBehavior) {
   const ext = targetFormat === "jpg" ? "jpg" : targetFormat;
   const outputPath = path.join(outputDir, `${baseName}.${ext}`);
   try {
@@ -247,7 +249,7 @@ async function resolveOutputPath(outputDir, baseName, targetFormat, overwriteBeh
     return { path: outputPath, skip: false };
   }
 }
-function getBaseName(filePath) {
+function getBaseName$3(filePath) {
   const name = path.basename(filePath);
   const lastDot = name.lastIndexOf(".");
   if (lastDot === -1) return name;
@@ -259,8 +261,8 @@ async function convertImage(options) {
   try {
     await fs.access(sourcePath);
     await fs.mkdir(outputDir, { recursive: true });
-    const baseName = getBaseName(sourcePath);
-    const { path: outputPath, skip } = await resolveOutputPath(
+    const baseName = getBaseName$3(sourcePath);
+    const { path: outputPath, skip } = await resolveOutputPath$3(
       outputDir,
       baseName,
       targetFormat,
@@ -361,7 +363,7 @@ async function convertImage(options) {
     };
   }
 }
-async function generateThumbnail(filePath, size = 128) {
+async function generateThumbnail$1(filePath, size = 128) {
   try {
     const buffer = await sharp(filePath, {
       failOn: "none"
@@ -373,6 +375,872 @@ async function generateThumbnail(filePath, size = 128) {
   } catch (err) {
     console.error(`[image-converter] Failed to generate thumbnail for ${filePath}:`, err);
     return null;
+  }
+}
+const binaryCache = /* @__PURE__ */ new Map();
+function getExecutableExtension() {
+  return platform() === "win32" ? ".exe" : "";
+}
+function getPlatformFolder() {
+  const os = platform();
+  switch (os) {
+    case "win32":
+      return "windows";
+    case "darwin":
+      return "macos";
+    case "linux":
+      return "linux";
+    default:
+      return "linux";
+  }
+}
+function getExecutablesDir() {
+  const appPath = app.getAppPath();
+  const rootFolder = path.dirname(appPath);
+  return path.join(rootFolder, "executables", getPlatformFolder());
+}
+async function isExecutable(filePath) {
+  try {
+    await fs.access(filePath, fs.constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function findBinaryInCommonPaths(binaryName) {
+  const ext = getExecutableExtension();
+  const executableName = `${binaryName}${ext}`;
+  const appExecutablesDir = getExecutablesDir();
+  const appBinaryPath = path.join(appExecutablesDir, executableName);
+  console.log(`[binary-checker] Checking app executables: ${appBinaryPath}`);
+  if (await isExecutable(appBinaryPath)) {
+    console.log(`[binary-checker] Found ${binaryName} in app executables`);
+    return appBinaryPath;
+  }
+  const pathBinary = await checkSystemPath(executableName);
+  if (pathBinary) {
+    console.log(`[binary-checker] Found ${binaryName} in system PATH`);
+    return pathBinary;
+  }
+  const commonPaths = getCommonInstallPaths(executableName);
+  for (const commonPath of commonPaths) {
+    if (await isExecutable(commonPath)) {
+      console.log(`[binary-checker] Found ${binaryName} at ${commonPath}`);
+      return commonPath;
+    }
+  }
+  console.warn(`[binary-checker] ${binaryName} not found in any location`);
+  return null;
+}
+async function checkSystemPath(executableName) {
+  return new Promise((resolve) => {
+    const cmd = platform() === "win32" ? "where" : "which";
+    const child = spawn(cmd, [executableName], { shell: true });
+    let output = "";
+    child.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+    child.on("close", (code) => {
+      if (code === 0 && output.trim()) {
+        const firstPath = output.trim().split("\n")[0];
+        resolve(firstPath);
+      } else {
+        resolve(null);
+      }
+    });
+    child.on("error", () => resolve(null));
+  });
+}
+function getCommonInstallPaths(executableName) {
+  const os = platform();
+  if (os === "win32") {
+    return [
+      `C:\\Program Files\\ffmpeg\\bin\\${executableName}`,
+      `C:\\Program Files (x86)\\ffmpeg\\bin\\${executableName}`,
+      `C:\\ffmpeg\\bin\\${executableName}`,
+      `C:\\Program Files\\Pandoc\\${executableName}`,
+      `C:\\Users\\${process.env.USERNAME}\\AppData\\Local\\Programs\\ffmpeg\\bin\\${executableName}`
+    ];
+  } else if (os === "darwin") {
+    return [
+      `/usr/local/bin/${executableName}`,
+      `/opt/homebrew/bin/${executableName}`,
+      `/usr/bin/${executableName}`,
+      `/Applications/ffmpeg/${executableName}`
+    ];
+  } else {
+    return [
+      `/usr/bin/${executableName}`,
+      `/usr/local/bin/${executableName}`,
+      `/snap/bin/${executableName}`,
+      `/opt/${executableName}`
+    ];
+  }
+}
+async function getBinaryVersion(binaryPath, binaryName) {
+  return new Promise((resolve) => {
+    const args = binaryName === "pandoc" ? ["--version"] : ["-version"];
+    const child = spawn(binaryPath, args);
+    let output = "";
+    child.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+    child.stderr.on("data", (data) => {
+      output += data.toString();
+    });
+    child.on("close", (code) => {
+      if (code === 0 && output) {
+        const versionMatch = output.match(/version\s+(\d+\.\d+(?:\.\d+)?)/i);
+        resolve(versionMatch ? versionMatch[1] : "unknown");
+      } else {
+        resolve(null);
+      }
+    });
+    child.on("error", () => resolve(null));
+    setTimeout(() => {
+      child.kill();
+      resolve(null);
+    }, 3e3);
+  });
+}
+async function findBinary(binaryName) {
+  if (binaryCache.has(binaryName)) {
+    return binaryCache.get(binaryName);
+  }
+  console.log(`[binary-checker] Searching for ${binaryName}...`);
+  const binaryPath = await findBinaryInCommonPaths(binaryName);
+  if (!binaryPath) {
+    const info2 = {
+      path: null,
+      version: null,
+      available: false
+    };
+    binaryCache.set(binaryName, info2);
+    return info2;
+  }
+  const version = await getBinaryVersion(binaryPath, binaryName);
+  const info = {
+    path: binaryPath,
+    version,
+    available: true
+  };
+  console.log(`[binary-checker] ${binaryName} found:`, info);
+  binaryCache.set(binaryName, info);
+  return info;
+}
+async function isFFmpegAvailable() {
+  const info = await findBinary("ffmpeg");
+  return info.available;
+}
+async function isPandocAvailable() {
+  const info = await findBinary("pandoc");
+  return info.available;
+}
+async function getFFmpegPath() {
+  const info = await findBinary("ffmpeg");
+  return info.path;
+}
+async function getFFprobePath() {
+  const info = await findBinary("ffprobe");
+  return info.path;
+}
+async function getPandocPath() {
+  const info = await findBinary("pandoc");
+  return info.path;
+}
+function clearBinaryCache() {
+  binaryCache.clear();
+  console.log("[binary-checker] Binary cache cleared");
+}
+async function getAllBinaryInfo() {
+  const [ffmpeg, ffprobe, pandoc] = await Promise.all([
+    findBinary("ffmpeg"),
+    findBinary("ffprobe"),
+    findBinary("pandoc")
+  ]);
+  return { ffmpeg, ffprobe, pandoc };
+}
+function getExecutablesDirectory() {
+  return getExecutablesDir();
+}
+const binaryChecker = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  clearBinaryCache,
+  findBinary,
+  getAllBinaryInfo,
+  getExecutablesDirectory,
+  getFFmpegPath,
+  getFFprobePath,
+  getPandocPath,
+  isFFmpegAvailable,
+  isPandocAvailable
+}, Symbol.toStringTag, { value: "Module" }));
+async function probeMediaFile(filePath) {
+  const ffprobePath = await getFFprobePath();
+  if (!ffprobePath) {
+    console.error("[ffmpeg-wrapper] ffprobe not available");
+    return null;
+  }
+  return new Promise((resolve) => {
+    const args = [
+      "-v",
+      "quiet",
+      "-print_format",
+      "json",
+      "-show_format",
+      "-show_streams",
+      filePath
+    ];
+    const child = spawn(ffprobePath, args);
+    let output = "";
+    child.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+    child.on("close", (code) => {
+      if (code !== 0) {
+        console.error("[ffmpeg-wrapper] ffprobe failed");
+        resolve(null);
+        return;
+      }
+      try {
+        const data = JSON.parse(output);
+        const videoStream = data.streams?.find((s) => s.codec_type === "video");
+        const audioStream = data.streams?.find((s) => s.codec_type === "audio");
+        const info = {
+          duration: parseFloat(data.format?.duration || "0"),
+          width: videoStream?.width,
+          height: videoStream?.height,
+          videoCodec: videoStream?.codec_name,
+          audioCodec: audioStream?.codec_name,
+          bitrate: parseInt(data.format?.bit_rate || "0"),
+          format: data.format?.format_name
+        };
+        resolve(info);
+      } catch (err) {
+        console.error("[ffmpeg-wrapper] Failed to parse ffprobe output:", err);
+        resolve(null);
+      }
+    });
+    child.on("error", (err) => {
+      console.error("[ffmpeg-wrapper] ffprobe error:", err);
+      resolve(null);
+    });
+  });
+}
+function parseFFmpegProgress(line, totalDuration) {
+  const timeMatch = line.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/);
+  if (!timeMatch) return null;
+  const [_, hours, minutes, seconds] = timeMatch;
+  const currentSeconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds);
+  if (totalDuration <= 0) return 0;
+  const percent = Math.min(100, currentSeconds / totalDuration * 100);
+  return Math.round(percent);
+}
+function buildFFmpegArgs(options) {
+  const { inputPath, outputPath, format, quality, isVideo } = options;
+  const args = ["-i", inputPath, "-y"];
+  let crf;
+  let preset;
+  let audioBitrate;
+  if (quality >= 90) {
+    crf = quality >= 95 ? 0 : 18;
+    preset = "slow";
+    audioBitrate = "192k";
+  } else if (quality >= 70) {
+    crf = 23;
+    preset = "medium";
+    audioBitrate = "128k";
+  } else {
+    crf = 28;
+    preset = "fast";
+    audioBitrate = "96k";
+  }
+  if (isVideo) {
+    switch (format.toLowerCase()) {
+      case "mp4":
+        args.push("-c:v", "libx264", "-crf", crf.toString(), "-preset", preset);
+        args.push("-c:a", "aac", "-b:a", audioBitrate);
+        break;
+      case "mkv":
+        args.push("-c:v", "libx264", "-crf", crf.toString(), "-preset", preset);
+        args.push("-c:a", "aac", "-b:a", audioBitrate);
+        break;
+      case "webm":
+        args.push("-c:v", "libvpx-vp9", "-crf", crf.toString(), "-b:v", "0");
+        args.push("-c:a", "libopus", "-b:a", audioBitrate);
+        break;
+      case "avi":
+        args.push("-c:v", "mpeg4", "-qscale:v", Math.floor((100 - quality) / 10).toString());
+        args.push("-c:a", "libmp3lame", "-b:a", audioBitrate);
+        break;
+      case "mov":
+        args.push("-c:v", "libx264", "-crf", crf.toString(), "-preset", preset);
+        args.push("-c:a", "aac", "-b:a", audioBitrate);
+        break;
+      case "gif":
+        args.push("-vf", "fps=10,scale=480:-1:flags=lanczos");
+        args.push("-c:v", "gif");
+        break;
+      case "3gp":
+        args.push("-c:v", "h263", "-c:a", "aac", "-b:a", "64k");
+        args.push("-s", "352x288");
+        break;
+      case "flv":
+        args.push("-c:v", "flv", "-c:a", "libmp3lame", "-b:a", audioBitrate);
+        break;
+      case "wmv":
+        args.push("-c:v", "wmv2", "-c:a", "wmav2", "-b:a", audioBitrate);
+        break;
+      default:
+        args.push("-c:v", "libx264", "-crf", crf.toString());
+        args.push("-c:a", "aac", "-b:a", audioBitrate);
+    }
+  } else {
+    switch (format.toLowerCase()) {
+      case "mp3":
+        args.push("-c:a", "libmp3lame", "-b:a", audioBitrate);
+        break;
+      case "aac":
+      case "m4a":
+        args.push("-c:a", "aac", "-b:a", audioBitrate);
+        break;
+      case "ogg":
+        args.push("-c:a", "libvorbis", "-q:a", Math.floor(quality / 20).toString());
+        break;
+      case "flac":
+        args.push("-c:a", "flac");
+        break;
+      case "wav":
+        args.push("-c:a", "pcm_s16le");
+        break;
+      case "wma":
+        args.push("-c:a", "wmav2", "-b:a", audioBitrate);
+        break;
+      default:
+        args.push("-c:a", "aac", "-b:a", audioBitrate);
+    }
+  }
+  args.push(outputPath);
+  return args;
+}
+async function executeFFmpeg(options) {
+  const ffmpegPath = await getFFmpegPath();
+  if (!ffmpegPath) {
+    return {
+      success: false,
+      error: "FFmpeg not available. Please install FFmpeg first."
+    };
+  }
+  const mediaInfo = await probeMediaFile(options.inputPath);
+  const totalDuration = mediaInfo?.duration || 0;
+  const isVideo = !!mediaInfo?.videoCodec;
+  const args = buildFFmpegArgs({
+    inputPath: options.inputPath,
+    outputPath: options.outputPath,
+    format: options.format,
+    quality: options.quality,
+    isVideo
+  });
+  console.log("[ffmpeg-wrapper] Executing:", ffmpegPath, args.join(" "));
+  return new Promise((resolve) => {
+    const child = spawn(ffmpegPath, args);
+    let stderrOutput = "";
+    let lastProgressUpdate = 0;
+    child.stderr?.on("data", (data) => {
+      const line = data.toString();
+      stderrOutput += line;
+      if (options.onProgress && totalDuration > 0) {
+        const progress = parseFFmpegProgress(line, totalDuration);
+        if (progress !== null && Date.now() - lastProgressUpdate > 500) {
+          options.onProgress(progress);
+          lastProgressUpdate = Date.now();
+        }
+      }
+    });
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve({ success: true });
+      } else {
+        const errorMatch = stderrOutput.match(/Error.*$/m);
+        const error = errorMatch ? errorMatch[0] : "FFmpeg conversion failed";
+        resolve({
+          success: false,
+          error,
+          stderr: stderrOutput
+        });
+      }
+    });
+    child.on("error", (err) => {
+      resolve({
+        success: false,
+        error: err.message
+      });
+    });
+    setTimeout(() => {
+      if (!child.killed) {
+        child.kill("SIGTERM");
+        resolve({
+          success: false,
+          error: "Conversion timeout (30 minutes maximum)"
+        });
+      }
+    }, 30 * 60 * 1e3);
+  });
+}
+const VIDEO_FORMATS = ["mp4", "mkv", "avi", "mov", "webm", "3gp", "flv", "wmv", "gif"];
+function isVideoFormat(ext) {
+  const lower = ext.toLowerCase();
+  return VIDEO_FORMATS.includes(lower);
+}
+async function resolveOutputPath$2(outputDir, baseName, targetFormat, overwriteBehavior) {
+  const outputPath = path.join(outputDir, `${baseName}.${targetFormat}`);
+  try {
+    await fs.access(outputPath);
+    if (overwriteBehavior === "overwrite") {
+      return { path: outputPath, skip: false };
+    }
+    if (overwriteBehavior === "skip") {
+      return { path: outputPath, skip: true };
+    }
+    let counter = 1;
+    let newPath;
+    do {
+      newPath = path.join(outputDir, `${baseName} (${counter}).${targetFormat}`);
+      counter++;
+      try {
+        await fs.access(newPath);
+      } catch {
+        return { path: newPath, skip: false };
+      }
+    } while (counter < 1e4);
+    return { path: newPath, skip: false };
+  } catch {
+    return { path: outputPath, skip: false };
+  }
+}
+function getBaseName$2(filePath) {
+  const name = path.basename(filePath);
+  const lastDot = name.lastIndexOf(".");
+  if (lastDot === -1) return name;
+  return name.substring(0, lastDot);
+}
+async function convertVideo(options) {
+  const startTime = Date.now();
+  const { sourcePath, outputDir, targetFormat, quality, overwriteBehavior, onProgress } = options;
+  try {
+    await fs.access(sourcePath);
+    const mediaInfo = await probeMediaFile(sourcePath);
+    if (!mediaInfo) {
+      return {
+        success: false,
+        outputPath: "",
+        error: "Failed to probe video file. The file may be corrupted or in an unsupported format.",
+        durationMs: Date.now() - startTime
+      };
+    }
+    if (!mediaInfo.videoCodec && targetFormat !== "gif") {
+      return {
+        success: false,
+        outputPath: "",
+        error: "Source file does not contain a video stream.",
+        durationMs: Date.now() - startTime
+      };
+    }
+    await fs.mkdir(outputDir, { recursive: true });
+    const baseName = getBaseName$2(sourcePath);
+    const { path: outputPath, skip } = await resolveOutputPath$2(
+      outputDir,
+      baseName,
+      targetFormat,
+      overwriteBehavior
+    );
+    if (skip) {
+      return {
+        success: true,
+        outputPath,
+        durationMs: Date.now() - startTime
+      };
+    }
+    const result = await executeFFmpeg({
+      inputPath: sourcePath,
+      outputPath,
+      format: targetFormat,
+      quality,
+      onProgress
+    });
+    if (!result.success) {
+      return {
+        success: false,
+        outputPath: "",
+        error: result.error || "FFmpeg conversion failed",
+        durationMs: Date.now() - startTime
+      };
+    }
+    return {
+      success: true,
+      outputPath,
+      durationMs: Date.now() - startTime
+    };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error(`[video-converter] Failed to convert ${sourcePath}:`, errorMessage);
+    return {
+      success: false,
+      outputPath: "",
+      error: errorMessage,
+      durationMs: Date.now() - startTime
+    };
+  }
+}
+async function generateThumbnail(filePath, size = 128) {
+  try {
+    const { getFFmpegPath: getFFmpegPath2 } = await Promise.resolve().then(() => binaryChecker);
+    const { spawn: spawn2 } = await import("child_process");
+    const os = await import("os");
+    const tmpPath = path.join(os.tmpdir(), `thumb-${Date.now()}.png`);
+    const ffmpegPath = await getFFmpegPath2();
+    if (!ffmpegPath) {
+      console.error("[video-converter] FFmpeg not available for thumbnail generation");
+      return null;
+    }
+    const mediaInfo = await probeMediaFile(filePath);
+    const seekTime = mediaInfo ? Math.min(1, mediaInfo.duration * 0.1) : 1;
+    const args = [
+      "-ss",
+      seekTime.toString(),
+      "-i",
+      filePath,
+      "-vframes",
+      "1",
+      "-vf",
+      `scale=${size}:${size}:force_original_aspect_ratio=decrease`,
+      "-y",
+      tmpPath
+    ];
+    await new Promise((resolve, reject) => {
+      const child = spawn2(ffmpegPath, args);
+      child.on("close", (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`FFmpeg exited with code ${code}`));
+      });
+      child.on("error", reject);
+    });
+    const buffer = await fs.readFile(tmpPath);
+    await fs.unlink(tmpPath).catch(() => {
+    });
+    return `data:image/png;base64,${buffer.toString("base64")}`;
+  } catch (err) {
+    console.error(`[video-converter] Failed to generate thumbnail for ${filePath}:`, err);
+    return null;
+  }
+}
+const AUDIO_FORMATS = ["mp3", "wav", "aac", "ogg", "flac", "wma", "m4a"];
+function isAudioFormat(ext) {
+  const lower = ext.toLowerCase();
+  return AUDIO_FORMATS.includes(lower);
+}
+async function resolveOutputPath$1(outputDir, baseName, targetFormat, overwriteBehavior) {
+  const outputPath = path.join(outputDir, `${baseName}.${targetFormat}`);
+  try {
+    await fs.access(outputPath);
+    if (overwriteBehavior === "overwrite") {
+      return { path: outputPath, skip: false };
+    }
+    if (overwriteBehavior === "skip") {
+      return { path: outputPath, skip: true };
+    }
+    let counter = 1;
+    let newPath;
+    do {
+      newPath = path.join(outputDir, `${baseName} (${counter}).${targetFormat}`);
+      counter++;
+      try {
+        await fs.access(newPath);
+      } catch {
+        return { path: newPath, skip: false };
+      }
+    } while (counter < 1e4);
+    return { path: newPath, skip: false };
+  } catch {
+    return { path: outputPath, skip: false };
+  }
+}
+function getBaseName$1(filePath) {
+  const name = path.basename(filePath);
+  const lastDot = name.lastIndexOf(".");
+  if (lastDot === -1) return name;
+  return name.substring(0, lastDot);
+}
+async function convertAudio(options) {
+  const startTime = Date.now();
+  const { sourcePath, outputDir, targetFormat, quality, overwriteBehavior, onProgress } = options;
+  try {
+    await fs.access(sourcePath);
+    const mediaInfo = await probeMediaFile(sourcePath);
+    if (!mediaInfo) {
+      return {
+        success: false,
+        outputPath: "",
+        error: "Failed to probe audio file. The file may be corrupted or in an unsupported format.",
+        durationMs: Date.now() - startTime
+      };
+    }
+    if (!mediaInfo.audioCodec) {
+      return {
+        success: false,
+        outputPath: "",
+        error: "Source file does not contain an audio stream.",
+        durationMs: Date.now() - startTime
+      };
+    }
+    await fs.mkdir(outputDir, { recursive: true });
+    const baseName = getBaseName$1(sourcePath);
+    const { path: outputPath, skip } = await resolveOutputPath$1(
+      outputDir,
+      baseName,
+      targetFormat,
+      overwriteBehavior
+    );
+    if (skip) {
+      return {
+        success: true,
+        outputPath,
+        durationMs: Date.now() - startTime
+      };
+    }
+    const result = await executeFFmpeg({
+      inputPath: sourcePath,
+      outputPath,
+      format: targetFormat,
+      quality,
+      onProgress
+    });
+    if (!result.success) {
+      return {
+        success: false,
+        outputPath: "",
+        error: result.error || "FFmpeg conversion failed",
+        durationMs: Date.now() - startTime
+      };
+    }
+    return {
+      success: true,
+      outputPath,
+      durationMs: Date.now() - startTime
+    };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error(`[audio-converter] Failed to convert ${sourcePath}:`, errorMessage);
+    return {
+      success: false,
+      outputPath: "",
+      error: errorMessage,
+      durationMs: Date.now() - startTime
+    };
+  }
+}
+function buildPandocArgs(options) {
+  const { inputPath, outputPath, targetFormat } = options;
+  const args = [inputPath, "-o", outputPath];
+  const format = targetFormat.toLowerCase();
+  if (format === "pdf") {
+    args.push("--pdf-engine=xelatex");
+    args.push("-V", "geometry:margin=1in");
+  } else if (format === "txt" || format === "plain") {
+    args.push("-t", "plain");
+    args.push("--wrap=auto");
+  } else if (format === "docx") {
+    args.push("--standalone");
+  } else if (format === "epub") {
+    args.push("--epub-cover-image=/dev/null");
+    args.push("--standalone");
+  }
+  return args;
+}
+async function executePandoc(options) {
+  const pandocPath = await getPandocPath();
+  if (!pandocPath) {
+    return {
+      success: false,
+      error: "Pandoc not available. Please install Pandoc first."
+    };
+  }
+  const args = buildPandocArgs(options);
+  console.log("[pandoc-wrapper] Executing:", pandocPath, args.join(" "));
+  return new Promise((resolve) => {
+    const child = spawn(pandocPath, args);
+    let stdoutOutput = "";
+    let stderrOutput = "";
+    child.stdout.on("data", (data) => {
+      stdoutOutput += data.toString();
+    });
+    child.stderr.on("data", (data) => {
+      stderrOutput += data.toString();
+    });
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve({ success: true });
+      } else {
+        const error = stderrOutput.trim() || "Pandoc conversion failed";
+        resolve({
+          success: false,
+          error,
+          stderr: stderrOutput
+        });
+      }
+    });
+    child.on("error", (err) => {
+      resolve({
+        success: false,
+        error: err.message
+      });
+    });
+    setTimeout(() => {
+      if (!child.killed) {
+        child.kill("SIGTERM");
+        resolve({
+          success: false,
+          error: "Conversion timeout (5 minutes maximum)"
+        });
+      }
+    }, 5 * 60 * 1e3);
+  });
+}
+function canPandocConvert(sourceExt, targetExt) {
+  const pandocFormats = /* @__PURE__ */ new Set([
+    "md",
+    "markdown",
+    "rst",
+    "txt",
+    "html",
+    "htm",
+    "pdf",
+    "docx",
+    "odt",
+    "epub",
+    "rtf",
+    "tex",
+    "latex",
+    "plain"
+  ]);
+  if (sourceExt.toLowerCase() === "pdf") {
+    return false;
+  }
+  return pandocFormats.has(sourceExt.toLowerCase()) && pandocFormats.has(targetExt.toLowerCase());
+}
+const DOCUMENT_FORMATS = ["pdf", "epub", "docx", "txt", "rtf", "odt", "md", "html"];
+function isDocumentFormat(ext) {
+  const lower = ext.toLowerCase();
+  return DOCUMENT_FORMATS.includes(lower);
+}
+async function resolveOutputPath(outputDir, baseName, targetFormat, overwriteBehavior) {
+  const outputPath = path.join(outputDir, `${baseName}.${targetFormat}`);
+  try {
+    await fs.access(outputPath);
+    if (overwriteBehavior === "overwrite") {
+      return { path: outputPath, skip: false };
+    }
+    if (overwriteBehavior === "skip") {
+      return { path: outputPath, skip: true };
+    }
+    let counter = 1;
+    let newPath;
+    do {
+      newPath = path.join(outputDir, `${baseName} (${counter}).${targetFormat}`);
+      counter++;
+      try {
+        await fs.access(newPath);
+      } catch {
+        return { path: newPath, skip: false };
+      }
+    } while (counter < 1e4);
+    return { path: newPath, skip: false };
+  } catch {
+    return { path: outputPath, skip: false };
+  }
+}
+function getBaseName(filePath) {
+  const name = path.basename(filePath);
+  const lastDot = name.lastIndexOf(".");
+  if (lastDot === -1) return name;
+  return name.substring(0, lastDot);
+}
+function getExtension(filePath) {
+  const ext = path.extname(filePath);
+  return ext ? ext.substring(1).toLowerCase() : "";
+}
+async function convertDocument(options) {
+  const startTime = Date.now();
+  const { sourcePath, outputDir, targetFormat, overwriteBehavior } = options;
+  try {
+    await fs.access(sourcePath);
+    const sourceExt = getExtension(sourcePath);
+    if (!sourceExt) {
+      return {
+        success: false,
+        outputPath: "",
+        error: "Could not determine source file format.",
+        durationMs: Date.now() - startTime
+      };
+    }
+    if (!canPandocConvert(sourceExt, targetFormat)) {
+      if (sourceExt === "pdf") {
+        return {
+          success: false,
+          outputPath: "",
+          error: "PDF as input is not supported by Pandoc. To convert from PDF, you would need additional tools like pdftotext.",
+          durationMs: Date.now() - startTime
+        };
+      }
+      return {
+        success: false,
+        outputPath: "",
+        error: `Pandoc does not support conversion from ${sourceExt} to ${targetFormat}.`,
+        durationMs: Date.now() - startTime
+      };
+    }
+    await fs.mkdir(outputDir, { recursive: true });
+    const baseName = getBaseName(sourcePath);
+    const { path: outputPath, skip } = await resolveOutputPath(
+      outputDir,
+      baseName,
+      targetFormat,
+      overwriteBehavior
+    );
+    if (skip) {
+      return {
+        success: true,
+        outputPath,
+        durationMs: Date.now() - startTime
+      };
+    }
+    const result = await executePandoc({
+      inputPath: sourcePath,
+      outputPath,
+      targetFormat
+    });
+    if (!result.success) {
+      return {
+        success: false,
+        outputPath: "",
+        error: result.error || "Pandoc conversion failed",
+        durationMs: Date.now() - startTime
+      };
+    }
+    return {
+      success: true,
+      outputPath,
+      durationMs: Date.now() - startTime
+    };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error(`[document-converter] Failed to convert ${sourcePath}:`, errorMessage);
+    return {
+      success: false,
+      outputPath: "",
+      error: errorMessage,
+      durationMs: Date.now() - startTime
+    };
   }
 }
 const FORMAT_MAP$1 = {
@@ -450,7 +1318,8 @@ const FORMAT_MAP$1 = {
     description: "JPEG XL - next-gen format with excellent compression"
   },
   // ========================================
-  // DOCUMENT FORMATS (❌ REQUIRES PANDOC)
+  // DOCUMENT FORMATS (✅ SUPPORTED VIA PANDOC)
+  // Note: PDF as input is NOT supported by Pandoc
   // ========================================
   pdf: {
     category: "document",
@@ -513,7 +1382,7 @@ const FORMAT_MAP$1 = {
     description: "FictionBook - XML-based ebook format"
   },
   // ========================================
-  // VIDEO FORMATS (❌ REQUIRES FFMPEG)
+  // VIDEO FORMATS (✅ SUPPORTED VIA FFMPEG)
   // ========================================
   mp4: {
     category: "video",
@@ -564,7 +1433,7 @@ const FORMAT_MAP$1 = {
     description: "Windows Media Video - Microsoft streaming format"
   },
   // ========================================
-  // AUDIO FORMATS (❌ REQUIRES FFMPEG)
+  // AUDIO FORMATS (✅ SUPPORTED VIA FFMPEG)
   // ========================================
   mp3: {
     category: "audio",
@@ -833,27 +1702,48 @@ ipcMain.handle("convert-files", async (_event, payload) => {
         progress: 90,
         status: "converting"
       });
-    } else if (category === "document") {
-      result = {
-        success: false,
-        outputPath: "",
-        error: "Document conversion requires Pandoc to be installed. Please install Pandoc (https://pandoc.org) and try again.",
-        durationMs: 0
-      };
-    } else if (category === "video") {
-      result = {
-        success: false,
-        outputPath: "",
-        error: "Video conversion requires FFmpeg to be installed. Please install FFmpeg (https://ffmpeg.org) and try again.",
-        durationMs: 0
-      };
-    } else if (category === "audio") {
-      result = {
-        success: false,
-        outputPath: "",
-        error: "Audio conversion requires FFmpeg to be installed. Please install FFmpeg (https://ffmpeg.org) and try again.",
-        durationMs: 0
-      };
+    } else if (category === "video" && isVideoFormat(file.sourceExt)) {
+      result = await convertVideo({
+        sourcePath: file.sourcePath,
+        outputDir: targetDirectory,
+        targetFormat: file.targetFormat,
+        quality,
+        overwriteBehavior,
+        onProgress: (percent) => {
+          mainWindow?.webContents.send("conversion-progress", {
+            fileId: file.fileId,
+            progress: percent,
+            status: "converting"
+          });
+        }
+      });
+    } else if (category === "audio" && isAudioFormat(file.sourceExt)) {
+      result = await convertAudio({
+        sourcePath: file.sourcePath,
+        outputDir: targetDirectory,
+        targetFormat: file.targetFormat,
+        quality,
+        overwriteBehavior,
+        onProgress: (percent) => {
+          mainWindow?.webContents.send("conversion-progress", {
+            fileId: file.fileId,
+            progress: percent,
+            status: "converting"
+          });
+        }
+      });
+    } else if (category === "document" && isDocumentFormat(file.sourceExt)) {
+      mainWindow?.webContents.send("conversion-progress", {
+        fileId: file.fileId,
+        progress: 50,
+        status: "converting"
+      });
+      result = await convertDocument({
+        sourcePath: file.sourcePath,
+        outputDir: targetDirectory,
+        targetFormat: file.targetFormat,
+        overwriteBehavior
+      });
     } else {
       result = {
         success: false,
@@ -896,8 +1786,13 @@ ipcMain.handle("convert-files", async (_event, payload) => {
 ipcMain.handle("generate-thumbnail", async (_event, filePath) => {
   try {
     const ext = path.extname(filePath).slice(1).toLowerCase();
-    if (!isImageFormat(ext)) return null;
-    return await generateThumbnail(filePath, 128);
+    if (isImageFormat(ext)) {
+      return await generateThumbnail$1(filePath, 128);
+    }
+    if (isVideoFormat(ext)) {
+      return await generateThumbnail(filePath, 128);
+    }
+    return null;
   } catch {
     return null;
   }
