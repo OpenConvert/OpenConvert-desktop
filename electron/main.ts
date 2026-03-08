@@ -23,6 +23,7 @@ import {
     getConverterCategory,
     generateThumbnail,
 } from './converters'
+import { getFileDialogFilters } from './config/formats'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isDev = !!process.env.VITE_DEV_SERVER_URL
@@ -149,22 +150,7 @@ ipcMain.handle('open-file-dialog', async () => {
 
     const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openFile', 'multiSelections'],
-        filters: [
-            {
-                name: 'Supported Files',
-                extensions: [
-                    'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'avif', 'tiff', 'tif', 'svg', 'ico', 'jxl',
-                    'pdf', 'epub', 'xps', 'cbz', 'mobi', 'fb2', 'docx', 'txt', 'rtf', 'odt',
-                    'mp4', 'mkv', 'avi', 'mov', 'webm', '3gp', 'flv', 'wmv',
-                    'mp3', 'wav', 'aac', 'ogg', 'flac', 'wma', 'm4a',
-                ],
-            },
-            { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'avif', 'tiff', 'tif', 'svg', 'ico', 'jxl'] },
-            { name: 'Documents', extensions: ['pdf', 'epub', 'xps', 'cbz', 'mobi', 'fb2', 'docx', 'txt', 'rtf', 'odt'] },
-            { name: 'Video', extensions: ['mp4', 'mkv', 'avi', 'mov', 'webm', '3gp', 'flv', 'wmv'] },
-            { name: 'Audio', extensions: ['mp3', 'wav', 'aac', 'ogg', 'flac', 'wma', 'm4a'] },
-            { name: 'All Files', extensions: ['*'] },
-        ],
+        filters: getFileDialogFilters(),
     })
 
     if (result.canceled) return []

@@ -84,6 +84,9 @@ interface HistoryStats {
 
 // Electron API
 interface ElectronAPI {
+    // Drag-and-drop
+    getPathForFile: (file: File) => string
+
     // Window controls
     minimize: () => void
     maximize: () => void

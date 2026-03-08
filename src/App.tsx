@@ -77,6 +77,7 @@ function App() {
     // e.stopPropagation() here, otherwise the React onDrop/onDragOver
     // handlers will never fire.
     const preventNav = (e: DragEvent) => {
+      console.log('[App] Global preventNav fired on', e.type)
       e.preventDefault()
     }
 

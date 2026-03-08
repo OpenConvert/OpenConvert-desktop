@@ -1,6 +1,9 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    // Drag-and-drop file path getter (modern Electron approach)
+    getPathForFile: (file: File) => webUtils.getPathForFile(file),
+
     // Window controls
     minimize: () => ipcRenderer.send('window-minimize'),
     maximize: () => ipcRenderer.send('window-maximize'),

@@ -40,7 +40,8 @@ const ImageThumbnail = memo(function ImageThumbnail({ filePath }: { filePath: st
 
     useEffect(() => {
         let cancelled = false
-        setIsLoading(true)
+        // Thumbnail generation is starting, so we can unconditionally set loading state to true
+        setIsLoading(true) // eslint-disable-line react-hooks/set-state-in-effect
 
         window.electronAPI.generateThumbnail(filePath).then((dataUrl) => {
             if (!cancelled) {
@@ -52,6 +53,7 @@ const ImageThumbnail = memo(function ImageThumbnail({ filePath }: { filePath: st
         })
 
         return () => { cancelled = true }
+
     }, [filePath])
 
     if (isLoading) {

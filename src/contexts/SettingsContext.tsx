@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { AppSettings, QualityPreset, OverwriteBehavior, ThemeOption } from '@/lib/settings'
 import { DEFAULT_SETTINGS, deserializeSettings } from '@/lib/settings'

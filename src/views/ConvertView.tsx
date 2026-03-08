@@ -169,24 +169,35 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
 
   // --- Drag-and-drop handlers ---
   const processDroppedFiles = useCallback(async (e: React.DragEvent) => {
+    console.log('[ConvertView] processDroppedFiles fired!', e.dataTransfer.files.length, 'files')
     e.preventDefault()
     dragCounter.current = 0
     setIsDraggingOver(false)
 
     const droppedFiles = Array.from(e.dataTransfer.files)
-    if (droppedFiles.length === 0) return
+    console.log('[ConvertView] droppedFiles:', droppedFiles)
+    if (droppedFiles.length === 0) {
+      console.warn('[ConvertView] No files in drop event')
+      return
+    }
 
     try {
       const fileInfos: FileInfo[] = []
 
       for (const file of droppedFiles) {
-        const electronFile = file as ElectronFile
-        if (electronFile.path) {
-          const info = await window.electronAPI.getFileInfo(electronFile.path)
+        // Use webUtils.getPathForFile() - the modern Electron approach
+        const filePath = window.electronAPI.getPathForFile(file)
+        console.log('[ConvertView] Processing file:', file.name, 'path:', filePath)
+        if (filePath) {
+          const info = await window.electronAPI.getFileInfo(filePath)
+          console.log('[ConvertView] Got file info:', info)
           if (info) fileInfos.push(info)
+        } else {
+          console.warn('[ConvertView] Could not get path for file:', file)
         }
       }
 
+      console.log('[ConvertView] Final fileInfos:', fileInfos)
       if (fileInfos.length > 0) handleFilesAdded(fileInfos)
     } catch (err) {
       console.error('[ConvertView] Failed to process dropped files:', err)
@@ -194,6 +205,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
   }, [handleFilesAdded])
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
+    console.log('[ConvertView] handleDragEnter, counter:', dragCounter.current)
     e.preventDefault()
     dragCounter.current += 1
     if (dragCounter.current === 1) {
@@ -202,6 +214,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
   }, [])
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
+    console.log('[ConvertView] handleDragLeave, counter:', dragCounter.current)
     e.preventDefault()
     dragCounter.current -= 1
     if (dragCounter.current === 0) {
@@ -210,6 +223,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
   }, [])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
+    console.log('[ConvertView] handleDragOver')
     e.preventDefault()
   }, [])
 

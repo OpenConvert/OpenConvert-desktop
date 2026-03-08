@@ -19,23 +19,34 @@ export default function DropZone({ onFilesAdded }: DropZoneProps) {
     }, [onFilesAdded])
 
     const handleDrop = useCallback(async (e: React.DragEvent) => {
+        console.log('[DropZone] handleDrop fired!', e.dataTransfer.files.length, 'files')
         e.preventDefault()
         e.stopPropagation()
         dragCounter.current = 0
         setIsDragActive(false)
 
         const droppedFiles = Array.from(e.dataTransfer.files)
-        if (droppedFiles.length === 0) return
+        console.log('[DropZone] droppedFiles:', droppedFiles)
+        if (droppedFiles.length === 0) {
+            console.warn('[DropZone] No files in drop event')
+            return
+        }
 
         try {
             const fileInfos: FileInfo[] = []
             for (const file of droppedFiles) {
-                const electronFile = file as ElectronFile
-                if (electronFile.path) {
-                    const info = await window.electronAPI.getFileInfo(electronFile.path)
+                // Use webUtils.getPathForFile() - the modern Electron approach
+                const filePath = window.electronAPI.getPathForFile(file)
+                console.log('[DropZone] Processing file:', file.name, 'path:', filePath)
+                if (filePath) {
+                    const info = await window.electronAPI.getFileInfo(filePath)
+                    console.log('[DropZone] Got file info:', info)
                     if (info) fileInfos.push(info)
+                } else {
+                    console.warn('[DropZone] Could not get path for file:', file)
                 }
             }
+            console.log('[DropZone] Final fileInfos:', fileInfos)
             if (fileInfos.length > 0) onFilesAdded(fileInfos)
         } catch (err) {
             console.error('[DropZone] Failed to process dropped files:', err)
@@ -43,11 +54,13 @@ export default function DropZone({ onFilesAdded }: DropZoneProps) {
     }, [onFilesAdded])
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
+        console.log('[DropZone] handleDragOver')
         e.preventDefault()
         e.stopPropagation()
     }, [])
 
     const handleDragEnter = useCallback((e: React.DragEvent) => {
+        console.log('[DropZone] handleDragEnter, counter:', dragCounter.current)
         e.preventDefault()
         e.stopPropagation()
         dragCounter.current += 1
