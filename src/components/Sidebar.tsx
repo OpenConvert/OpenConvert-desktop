@@ -1,6 +1,6 @@
-import { ArrowLeftRight, Puzzle, Clock, Settings } from 'lucide-react'
+import { ArrowLeftRight, Puzzle, Clock, Settings, BarChart3 } from 'lucide-react'
 
-export type Tab = 'convert' | 'plugins' | 'history' | 'settings'
+export type Tab = 'convert' | 'plugins' | 'history' | 'analytics' | 'settings'
 
 interface AppSidebarProps {
   activeTab: Tab
@@ -10,8 +10,9 @@ interface AppSidebarProps {
 
 const mainNavItems: { id: Tab; label: string; icon: typeof ArrowLeftRight }[] = [
   { id: 'convert', label: 'Convert', icon: ArrowLeftRight },
-  { id: 'plugins', label: 'Plugins', icon: Puzzle },
   { id: 'history', label: 'History', icon: Clock },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'plugins', label: 'Plugins', icon: Puzzle },
 ]
 
 const settingsNavItems: { id: Tab; label: string; icon: typeof Settings }[] = [

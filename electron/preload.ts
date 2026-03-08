@@ -40,6 +40,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     clearHistory: () => ipcRenderer.invoke('clear-history'),
     showInFolder: (filePath: string) => ipcRenderer.invoke('show-in-folder', filePath),
 
+    // Analytics
+    getAnalytics: () => ipcRenderer.invoke('get-analytics'),
+
     // Settings
     getSettings: () => ipcRenderer.invoke('get-settings'),
     getSetting: (key: string) => ipcRenderer.invoke('get-setting', key),

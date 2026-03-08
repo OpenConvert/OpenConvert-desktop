@@ -124,6 +124,96 @@ function closeDatabase() {
     console.log("[database] Database closed.");
   }
 }
+function getAnalytics() {
+  const db2 = getDatabase();
+  const totalResult = db2.prepare("SELECT COUNT(*) as count FROM conversions").get();
+  const totalConversions = totalResult.count;
+  if (totalConversions === 0) {
+    return {
+      totalConversions: 0,
+      successfulConversions: 0,
+      failedConversions: 0,
+      totalFilesSize: 0,
+      totalDuration: 0,
+      averageDuration: 0,
+      topSourceFormats: [],
+      topTargetFormats: [],
+      conversionsByCategory: [],
+      recentTrend: [],
+      fastestConversion: null,
+      slowestConversion: null
+    };
+  }
+  const successResult = db2.prepare("SELECT COUNT(*) as count FROM conversions WHERE status = ?").get("completed");
+  const failedResult = db2.prepare("SELECT COUNT(*) as count FROM conversions WHERE status = ?").get("failed");
+  const aggregateResult = db2.prepare("SELECT SUM(source_size) as total_size, SUM(duration_ms) as total_duration, AVG(duration_ms) as avg_duration FROM conversions").get();
+  const topSourceFormats = db2.prepare(`
+        SELECT source_ext as format, COUNT(*) as count
+        FROM conversions
+        GROUP BY source_ext
+        ORDER BY count DESC
+        LIMIT 10
+    `).all();
+  const topTargetFormats = db2.prepare(`
+        SELECT target_format as format, COUNT(*) as count
+        FROM conversions
+        GROUP BY target_format
+        ORDER BY count DESC
+        LIMIT 10
+    `).all();
+  const allExts = db2.prepare("SELECT source_ext, COUNT(*) as count FROM conversions GROUP BY source_ext").all();
+  const categoryCount = { image: 0, document: 0, video: 0, audio: 0 };
+  for (const ext of allExts) {
+    const lower = ext.source_ext.toLowerCase();
+    if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "avif", "tiff", "tif", "svg", "ico", "jxl"].includes(lower)) {
+      categoryCount.image += ext.count;
+    } else if (["pdf", "epub", "docx", "txt", "rtf", "odt", "xps", "cbz", "mobi", "fb2"].includes(lower)) {
+      categoryCount.document += ext.count;
+    } else if (["mp4", "mkv", "avi", "mov", "webm", "3gp", "flv", "wmv"].includes(lower)) {
+      categoryCount.video += ext.count;
+    } else if (["mp3", "wav", "aac", "ogg", "flac", "wma", "m4a"].includes(lower)) {
+      categoryCount.audio += ext.count;
+    }
+  }
+  const conversionsByCategory = Object.entries(categoryCount).filter(([_, count]) => count > 0).map(([category, count]) => ({ category, count })).sort((a, b) => b.count - a.count);
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1e3;
+  const recentTrend = db2.prepare(`
+        SELECT DATE(created_at / 1000, 'unixepoch') as date, COUNT(*) as count
+        FROM conversions
+        WHERE created_at > ?
+        GROUP BY date
+        ORDER BY date DESC
+        LIMIT 7
+    `).all(sevenDaysAgo);
+  const fastestConversion = db2.prepare(`
+        SELECT source_name as name, duration_ms as duration
+        FROM conversions
+        WHERE status = 'completed' AND duration_ms > 0
+        ORDER BY duration_ms ASC
+        LIMIT 1
+    `).get();
+  const slowestConversion = db2.prepare(`
+        SELECT source_name as name, duration_ms as duration
+        FROM conversions
+        WHERE status = 'completed' AND duration_ms > 0
+        ORDER BY duration_ms DESC
+        LIMIT 1
+    `).get();
+  return {
+    totalConversions,
+    successfulConversions: successResult.count,
+    failedConversions: failedResult.count,
+    totalFilesSize: aggregateResult.total_size ?? 0,
+    totalDuration: aggregateResult.total_duration ?? 0,
+    averageDuration: aggregateResult.avg_duration ?? 0,
+    topSourceFormats,
+    topTargetFormats,
+    conversionsByCategory,
+    recentTrend,
+    fastestConversion: fastestConversion ?? null,
+    slowestConversion: slowestConversion ?? null
+  };
+}
 const SHARP_FORMATS = ["png", "jpg", "jpeg", "webp", "gif", "avif", "tiff", "tif", "jxl"];
 const SPECIAL_INPUT_FORMATS = ["svg", "ico", "bmp"];
 function isImageFormat(ext) {
@@ -834,6 +924,9 @@ ipcMain.handle("clear-history", async () => {
 ipcMain.handle("show-in-folder", async (_event, filePath) => {
   shell.showItemInFolder(filePath);
   return true;
+});
+ipcMain.handle("get-analytics", async () => {
+  return getAnalytics();
 });
 ipcMain.handle("get-settings", async () => {
   return getAllSettings();

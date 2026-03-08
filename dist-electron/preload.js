@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   deleteHistoryItem: (id) => ipcRenderer.invoke("delete-history-item", id),
   clearHistory: () => ipcRenderer.invoke("clear-history"),
   showInFolder: (filePath) => ipcRenderer.invoke("show-in-folder", filePath),
+  // Analytics
+  getAnalytics: () => ipcRenderer.invoke("get-analytics"),
   // Settings
   getSettings: () => ipcRenderer.invoke("get-settings"),
   getSetting: (key) => ipcRenderer.invoke("get-setting", key),

@@ -82,6 +82,22 @@ interface HistoryStats {
     failed: number
 }
 
+// Analytics types
+interface AnalyticsData {
+    totalConversions: number
+    successfulConversions: number
+    failedConversions: number
+    totalFilesSize: number
+    totalDuration: number
+    averageDuration: number
+    topSourceFormats: Array<{ format: string; count: number }>
+    topTargetFormats: Array<{ format: string; count: number }>
+    conversionsByCategory: Array<{ category: string; count: number }>
+    recentTrend: Array<{ date: string; count: number }>
+    fastestConversion: { name: string; duration: number } | null
+    slowestConversion: { name: string; duration: number } | null
+}
+
 // Electron API
 interface ElectronAPI {
     // Drag-and-drop
@@ -112,6 +128,9 @@ interface ElectronAPI {
     deleteHistoryItem: (id: number) => Promise<boolean>
     clearHistory: () => Promise<number>
     showInFolder: (filePath: string) => Promise<boolean>
+
+    // Analytics
+    getAnalytics: () => Promise<AnalyticsData>
 
     // Settings
     getSettings: () => Promise<Record<string, string>>

@@ -16,6 +16,7 @@ import {
     setSetting,
     getAllSettings,
     resetAllSettings,
+    getAnalytics,
 } from './database'
 import {
     convertImage,
@@ -409,6 +410,10 @@ ipcMain.handle('clear-history', async () => {
 ipcMain.handle('show-in-folder', async (_event, filePath: string) => {
     shell.showItemInFolder(filePath)
     return true
+})
+
+ipcMain.handle('get-analytics', async () => {
+    return getAnalytics()
 })
 
 // ========================================

@@ -7,6 +7,7 @@ import type { Tab } from '@/components/Sidebar'
 import ConvertView from '@/views/ConvertView'
 import PluginsView from '@/views/PluginsView'
 import HistoryView from '@/views/HistoryView'
+import AnalyticsView from '@/views/AnalyticsView'
 import SettingsView from '@/views/SettingsView'
 import type { ConvertFile } from '@/components/FileList'
 
@@ -27,10 +28,12 @@ function renderView(
           setOutputDir={setOutputDir}
         />
       )
-    case 'plugins':
-      return <PluginsView />
     case 'history':
       return <HistoryView />
+    case 'analytics':
+      return <AnalyticsView />
+    case 'plugins':
+      return <PluginsView />
     case 'settings':
       return <SettingsView />
   }
