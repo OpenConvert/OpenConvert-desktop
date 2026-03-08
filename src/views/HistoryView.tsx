@@ -13,6 +13,8 @@ import {
   Film,
   Music,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -98,33 +100,27 @@ export default function HistoryView() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const [offset, setOffset] = useState(0)
-  const LIMIT = 50
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
 
-  const fetchHistory = useCallback(async (reset: boolean = false) => {
+  const fetchHistory = useCallback(async () => {
     setIsLoading(true)
     try {
-      const newOffset = reset ? 0 : offset
+      const offset = (currentPage - 1) * ITEMS_PER_PAGE
       const result = await window.electronAPI.getHistory({
-        limit: LIMIT,
-        offset: newOffset,
+        limit: ITEMS_PER_PAGE,
+        offset,
         status: statusFilter === 'all' ? undefined : statusFilter,
         search: searchQuery || undefined,
       })
-      if (reset) {
-        setItems(result.items)
-        setOffset(result.items.length)
-      } else {
-        setItems((prev) => [...prev, ...result.items])
-        setOffset((prev) => prev + result.items.length)
-      }
+      setItems(result.items)
       setTotal(result.total)
     } catch (err) {
       console.error('Failed to fetch history:', err)
     } finally {
       setIsLoading(false)
     }
-  }, [offset, statusFilter, searchQuery])
+  }, [currentPage, statusFilter, searchQuery])
 
   const fetchStats = useCallback(async () => {
     try {
@@ -135,12 +131,16 @@ export default function HistoryView() {
     }
   }, [])
 
-  // Fetch on mount and when filters change
+  // Fetch on mount and when filters/page change
   useEffect(() => {
-    setOffset(0)
-    fetchHistory(true)
+    fetchHistory()
     fetchStats()
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, statusFilter, searchQuery])
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
   }, [statusFilter, searchQuery])
 
   const handleClearAll = useCallback(async () => {
@@ -174,12 +174,19 @@ export default function HistoryView() {
     }
   }, [])
 
-  const handleLoadMore = useCallback(() => {
-    fetchHistory(false)
-  }, [fetchHistory])
+  const totalPages = Math.ceil(total / ITEMS_PER_PAGE)
+  const startItem = total === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1
+  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, total)
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1)
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1)
+  }
 
   const grouped = groupByDate(items)
-  const hasMore = items.length < total
 
   // ===== EMPTY STATE =====
   if (!isLoading && items.length === 0 && statusFilter === 'all' && !searchQuery) {
@@ -378,18 +385,35 @@ export default function HistoryView() {
               </div>
             ))}
 
-            {/* Load more */}
-            {hasMore && (
-              <div className="flex justify-center py-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLoadMore}
-                  disabled={isLoading}
-                  className="bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
-                >
-                  {isLoading ? 'Loading...' : `Load more (${total - items.length} remaining)`}
-                </Button>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between py-3 px-1 border-t border-zinc-800/30 mt-2">
+                <div className="text-xs text-zinc-600">
+                  Showing {startItem}-{endItem} of {total} conversions
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                    className="bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed h-7 px-2"
+                  >
+                    <ChevronLeft size={14} />
+                  </Button>
+                  <span className="text-xs text-zinc-500 min-w-[60px] text-center">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    className="bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed h-7 px-2"
+                  >
+                    <ChevronRight size={14} />
+                  </Button>
+                </div>
               </div>
             )}
           </div>

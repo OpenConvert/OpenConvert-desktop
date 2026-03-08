@@ -1,4 +1,5 @@
 import { ArrowLeftRight, Puzzle, Clock, Settings, BarChart3 } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export type Tab = 'convert' | 'plugins' | 'history' | 'analytics' | 'settings'
 
@@ -34,18 +35,28 @@ export default function AppSidebar({
         {/* Navigation links */}
         <div className="flex flex-col gap-1 px-2 mt-1">
           {mainNavItems.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => onTabChange(id)}
-              className={`flex items-center h-9 rounded-lg text-sm font-medium transition-colors duration-150 cursor-pointer ${isSidebarExpanded ? 'gap-3 px-3' : 'justify-center px-0'
-                } ${activeTab === id
-                  ? 'bg-violet-600 text-white'
-                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-                }`}
-            >
-              <Icon size={18} className="flex-shrink-0" />
-              <span className={isSidebarExpanded ? 'block' : 'hidden'}>{label}</span>
-            </button>
+            <TooltipProvider key={id} delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => onTabChange(id)}
+                    className={`flex items-center h-9 rounded-lg text-sm font-medium transition-colors duration-150 cursor-pointer ${isSidebarExpanded ? 'gap-3 px-3' : 'justify-center px-0'
+                      } ${activeTab === id
+                        ? 'bg-violet-600 text-white'
+                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                      }`}
+                  >
+                    <Icon size={18} className="flex-shrink-0" />
+                    <span className={isSidebarExpanded ? 'block' : 'hidden'}>{label}</span>
+                  </button>
+                </TooltipTrigger>
+                {!isSidebarExpanded && (
+                  <TooltipContent side="right">
+                    {label}
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           ))}
         </div>
       </div>
@@ -53,18 +64,28 @@ export default function AppSidebar({
       {/* Bottom section: Settings */}
       <div className="flex flex-col gap-1 px-2 pb-3">
         {settingsNavItems.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => onTabChange(id)}
-            className={`flex items-center h-9 rounded-lg text-sm font-medium transition-colors duration-150 cursor-pointer ${isSidebarExpanded ? 'gap-3 px-3' : 'justify-center px-0'
-              } ${activeTab === id
-                ? 'bg-violet-600 text-white'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
-              }`}
-          >
-            <Icon size={18} className="flex-shrink-0" />
-            <span className={isSidebarExpanded ? 'block' : 'hidden'}>{label}</span>
-          </button>
+          <TooltipProvider key={id} delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => onTabChange(id)}
+                  className={`flex items-center h-9 rounded-lg text-sm font-medium transition-colors duration-150 cursor-pointer ${isSidebarExpanded ? 'gap-3 px-3' : 'justify-center px-0'
+                    } ${activeTab === id
+                      ? 'bg-violet-600 text-white'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                    }`}
+                >
+                  <Icon size={18} className="flex-shrink-0" />
+                  <span className={isSidebarExpanded ? 'block' : 'hidden'}>{label}</span>
+                </button>
+              </TooltipTrigger>
+              {!isSidebarExpanded && (
+                <TooltipContent side="right">
+                  {label}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         ))}
       </div>
     </div>
