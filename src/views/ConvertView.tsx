@@ -20,13 +20,13 @@ interface ConvertViewProps {
 }
 
 export default function ConvertView({ files, setFiles, outputDir, setOutputDir }: ConvertViewProps) {
+  const { settings } = useSettings()
   const [isConverting, setIsConverting] = useState(false)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
-  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(settings.showAdvancedSettings)
   const [batchQuality, setBatchQuality] = useState<QualityPreset | null>(null) // null = use global setting
   const [batchOverwrite, setBatchOverwrite] = useState<OverwriteBehavior | null>(null)
   const dragCounter = useRef(0)
-  const { settings } = useSettings()
 
   // Listen for real-time conversion progress from the main process
   useEffect(() => {
@@ -54,7 +54,50 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
   }, [outputDir, settings.defaultOutputDir, setOutputDir])
 
   const handleFilesAdded = useCallback((newFiles: FileInfo[]) => {
-    const convertFiles: ConvertFile[] = newFiles.map((f) => {
+    // Check file count limit
+    const currentFileCount = files.length
+    const maxFileCount = settings.maxFileCount
+    const availableSlots = maxFileCount - currentFileCount
+    
+    if (currentFileCount >= maxFileCount) {
+      alert(`Maximum file limit reached (${maxFileCount} files). Please remove some files before adding more.`)
+      return
+    }
+    
+    // Filter files based on size limit
+    const maxFileSizeBytes = settings.maxFileSizeMB * 1024 * 1024
+    const validFiles: FileInfo[] = []
+    const oversizedFiles: string[] = []
+    
+    for (const file of newFiles) {
+      if (file.size > maxFileSizeBytes) {
+        oversizedFiles.push(`${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`)
+      } else {
+        validFiles.push(file)
+      }
+    }
+    
+    // Show warning for oversized files
+    if (oversizedFiles.length > 0) {
+      alert(
+        `The following files exceed the maximum size limit of ${settings.maxFileSizeMB} MB and were skipped:\n\n${oversizedFiles.join('\n')}`
+      )
+    }
+    
+    // Limit to available slots
+    const filesToAdd = validFiles.slice(0, availableSlots)
+    
+    if (filesToAdd.length < validFiles.length) {
+      alert(
+        `Only ${filesToAdd.length} of ${validFiles.length} files can be added due to the maximum file limit (${maxFileCount} files total).`
+      )
+    }
+    
+    if (filesToAdd.length === 0) {
+      return
+    }
+    
+    const convertFiles: ConvertFile[] = filesToAdd.map((f) => {
       const targets = getTargetFormats(f.ext)
       return {
         id: `${f.path}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -68,7 +111,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
       }
     })
     setFiles((prev) => [...prev, ...convertFiles])
-  }, [setFiles])
+  }, [setFiles, files.length, settings.maxFileCount, settings.maxFileSizeMB])
 
   const handleRemoveFile = useCallback((id: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== id))

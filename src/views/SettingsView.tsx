@@ -273,6 +273,49 @@ export default function SettingsView() {
             <Separator className="bg-zinc-800/30" />
 
             <SettingRow
+              label="Maximum file count"
+              description={`Limit the number of files to ${settings.maxFileCount} per batch`}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={1}
+                  max={500}
+                  value={settings.maxFileCount}
+                  onChange={(e) => updateSetting('maxFileCount', parseInt(e.target.value))}
+                  className="w-24 h-1.5 bg-zinc-700 rounded-full appearance-none cursor-pointer accent-violet-500"
+                />
+                <span className="text-xs text-zinc-400 w-8 text-center font-mono">
+                  {settings.maxFileCount}
+                </span>
+              </div>
+            </SettingRow>
+
+            <Separator className="bg-zinc-800/30" />
+
+            <SettingRow
+              label="Maximum file size"
+              description={`Limit individual file size to ${settings.maxFileSizeMB} MB`}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={1}
+                  max={2000}
+                  step={10}
+                  value={settings.maxFileSizeMB}
+                  onChange={(e) => updateSetting('maxFileSizeMB', parseInt(e.target.value))}
+                  className="w-24 h-1.5 bg-zinc-700 rounded-full appearance-none cursor-pointer accent-violet-500"
+                />
+                <span className="text-xs text-zinc-400 w-12 text-center font-mono">
+                  {settings.maxFileSizeMB}
+                </span>
+              </div>
+            </SettingRow>
+
+            <Separator className="bg-zinc-800/30" />
+
+            <SettingRow
               label="Show advanced options"
               description="Display advanced settings panel on the convert page"
             >

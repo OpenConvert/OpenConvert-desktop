@@ -8,6 +8,8 @@ export interface AppSettings {
     overwriteBehavior: OverwriteBehavior
     theme: ThemeOption
     showAdvancedSettings: boolean
+    maxFileCount: number
+    maxFileSizeMB: number
 }
 
 export type QualityPreset = 'low' | 'medium' | 'high' | 'lossless'
@@ -22,6 +24,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     overwriteBehavior: 'rename',
     theme: 'dark',
     showAdvancedSettings: false,
+    maxFileCount: 100,
+    maxFileSizeMB: 500,
 }
 
 export const QUALITY_LABELS: Record<QualityPreset, { label: string; description: string }> = {

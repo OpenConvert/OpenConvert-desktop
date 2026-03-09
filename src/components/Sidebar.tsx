@@ -63,6 +63,7 @@ export default function AppSidebar({
 
       {/* Bottom section: Settings */}
       <div className="flex flex-col gap-1 px-2 pb-3">
+        <div className="h-px bg-white/10 mx-2 mb-1" />
         {settingsNavItems.map(({ id, label, icon: Icon }) => (
           <TooltipProvider key={id} delayDuration={300}>
             <Tooltip>

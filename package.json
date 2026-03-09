@@ -1,5 +1,5 @@
 {
-  "name": "openconvert-vite",
+  "name": "openconvert",
   "private": true,
   "version": "1.3.3",
   "type": "module",
@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build:ts": "tsc -b && vite build",
-    "build": "tsc -b && vite build && electron-builder",
+    "build:linux": "tsc -b && vite build && electron-builder --linux",
+    "build:windows": "tsc -b && vite build && electron-builder --win",
+    "build:mac": "tsc -b && vite build && electron-builder --mac",
     "lint": "eslint .",
     "preview": "vite preview"
   },
