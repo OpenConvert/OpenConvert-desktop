@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { AlertDialog } from '@/components/ui/alert-dialog'
 import { useSettings } from '@/contexts/SettingsContext'
 import {
   QUALITY_LABELS,
@@ -81,6 +82,7 @@ function SettingRow({
 export default function SettingsView() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('general')
   const [appVersion, setAppVersion] = useState<string>('')
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void } | null>(null)
   const { settings, updateSetting, resetSettings } = useSettings()
 
   useEffect(() => {
@@ -96,9 +98,15 @@ export default function SettingsView() {
     }
   }
 
-  const handleResetSettings = async () => {
-    if (!confirm('Reset all settings to defaults?')) return
-    await resetSettings()
+  const handleResetSettings = () => {
+    setConfirmDialog({
+      open: true,
+      title: 'Reset Settings',
+      description: 'Reset all settings to defaults? This cannot be undone.',
+      onConfirm: async () => {
+        await resetSettings()
+      },
+    })
   }
 
   const handleOpenExternal = async (url: string) => {
@@ -453,6 +461,21 @@ export default function SettingsView() {
           </div>
         )}
       </div>
+
+      {/* Confirm Dialog */}
+      {confirmDialog && (
+        <AlertDialog
+          open={confirmDialog.open}
+          onOpenChange={(open) => !open && setConfirmDialog(null)}
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+          confirmText="Reset"
+          cancelText="Cancel"
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+          variant="destructive"
+        />
+      )}
     </div>
   )
 }

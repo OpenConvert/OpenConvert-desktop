@@ -12,6 +12,29 @@ interface ElectronFile extends File {
     path: string
 }
 
+// Image optimization options
+interface ImageOptimizationOptions {
+    resize?: {
+        width?: number
+        height?: number
+        fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside'
+    }
+    rotate?: number // Degrees: 0, 90, 180, 270
+    stripMetadata?: boolean
+}
+
+// Audio/Video optimization options
+interface MediaOptimizationOptions {
+    videoBitrate?: string // e.g., '1M', '2M', '5M'
+    audioBitrate?: string // e.g., '128k', '192k', '320k'
+    resolution?: string // e.g., '1920x1080', '1280x720', '640x480'
+    fps?: number // Frames per second
+    codec?: {
+        video?: string // e.g., 'libx264', 'libx265'
+        audio?: string // e.g., 'aac', 'mp3'
+    }
+}
+
 // Conversion types
 interface ConvertFilePayload {
     sourcePath: string
@@ -20,6 +43,7 @@ interface ConvertFilePayload {
     sourceSize: number
     targetFormat: string
     fileId: string
+    imageOptions?: ImageOptimizationOptions
 }
 
 interface ConvertPayload {
@@ -35,6 +59,9 @@ interface ConversionProgressData {
     progress: number
     status: 'converting' | 'done' | 'error'
     error?: string
+    currentOperation?: string // e.g., "Encoding...", "Decoding...", "Processing..."
+    eta?: number // Estimated seconds remaining
+    startTime?: number // Timestamp when conversion started
 }
 
 interface ConversionResult {

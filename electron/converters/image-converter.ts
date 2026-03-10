@@ -2,12 +2,23 @@ import sharp from 'sharp'
 import path from 'path'
 import fs from 'fs/promises'
 
+export interface ImageOptimizationOptions {
+    resize?: {
+        width?: number
+        height?: number
+        fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside'
+    }
+    rotate?: number // Degrees: 0, 90, 180, 270
+    stripMetadata?: boolean
+}
+
 export interface ImageConvertOptions {
     sourcePath: string
     outputDir: string
     targetFormat: string
     quality: number          // 1-100
     overwriteBehavior: 'skip' | 'rename' | 'overwrite'
+    optimizations?: ImageOptimizationOptions
 }
 
 export interface ConvertResult {
@@ -119,6 +130,33 @@ export async function convertImage(options: ImageConvertOptions): Promise<Conver
             animated: false, // Don't process animated frames for conversion
             failOn: 'none',  // Don't fail on minor image issues
         })
+
+        // Apply optimization options if provided
+        const opts = options.optimizations
+        
+        // Apply rotation
+        if (opts?.rotate && opts.rotate !== 0) {
+            pipeline = pipeline.rotate(opts.rotate)
+        }
+
+        // Apply resize
+        if (opts?.resize) {
+            const { width, height, fit = 'inside' } = opts.resize
+            if (width || height) {
+                pipeline = pipeline.resize(width, height, {
+                    fit,
+                    withoutEnlargement: true,
+                })
+            }
+        }
+
+        // Strip metadata if requested
+        if (opts?.stripMetadata) {
+            pipeline = pipeline.withMetadata({
+                // Keep orientation but remove other EXIF data
+                orientation: undefined,
+            })
+        }
 
         // Apply format-specific conversion
         const format = targetFormat.toLowerCase()

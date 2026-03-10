@@ -15,11 +15,16 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  Download,
+  CheckSquare,
+  Square,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import ComparisonModal from '@/components/ComparisonModal'
+import { AlertDialog } from '@/components/ui/alert-dialog'
 import { formatFileSize, getFileCategory, getCategoryColor, getCategoryBgColor } from '@/lib/formats'
 import type { FileCategory } from '@/lib/formats'
 
@@ -98,9 +103,13 @@ export default function HistoryView() {
   const [total, setTotal] = useState(0)
   const [stats, setStats] = useState<HistoryStats>({ total: 0, completed: 0, failed: 0 })
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
+  const [comparisonItem, setComparisonItem] = useState<HistoryItem | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; description: string; onConfirm: () => void } | null>(null)
+  const [alertDialog, setAlertDialog] = useState<{ open: boolean; title: string; description: string } | null>(null)
   const ITEMS_PER_PAGE = 10
 
   const fetchHistory = useCallback(async () => {
@@ -131,6 +140,81 @@ export default function HistoryView() {
     }
   }, [])
 
+  // Selection handlers
+  const toggleSelect = useCallback((id: number) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(id)) {
+        newSet.delete(id)
+      } else {
+        newSet.add(id)
+      }
+      return newSet
+    })
+  }, [])
+
+  const selectAll = useCallback(() => {
+    setSelectedIds(new Set(items.map(item => item.id)))
+  }, [items])
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+  }, [])
+
+  // Bulk operations
+  const handleBulkDelete = useCallback(() => {
+    if (selectedIds.size === 0) return
+    
+    setConfirmDialog({
+      open: true,
+      title: 'Delete Items',
+      description: `Delete ${selectedIds.size} item(s) from history? This cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          for (const id of selectedIds) {
+            await window.electronAPI.deleteHistoryItem(id)
+          }
+          clearSelection()
+          fetchHistory()
+          fetchStats()
+        } catch (err) {
+          console.error('Failed to delete items:', err)
+          setAlertDialog({
+            open: true,
+            title: 'Delete Failed',
+            description: 'Failed to delete some items. Please try again.',
+          })
+        }
+      },
+    })
+  }, [selectedIds, clearSelection, fetchHistory, fetchStats])
+
+  const handleBulkExport = useCallback(() => {
+    if (selectedIds.size === 0) return
+
+    const selectedItems = items.filter(item => selectedIds.has(item.id))
+    const csvContent = [
+      ['Source File', 'Target Format', 'Status', 'File Size', 'Duration (ms)', 'Date', 'Output Path'].join(','),
+      ...selectedItems.map(item => [
+        item.source_name,
+        item.target_format,
+        item.status,
+        item.source_size,
+        item.duration_ms,
+        new Date(item.created_at).toISOString(),
+        item.output_path || ''
+      ].join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `conversion-history-${Date.now()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [selectedIds, items])
+
   // Fetch on mount and when filters/page change
   useEffect(() => {
     fetchHistory()
@@ -143,16 +227,22 @@ export default function HistoryView() {
     setCurrentPage(1)
   }, [statusFilter, searchQuery])
 
-  const handleClearAll = useCallback(async () => {
-    if (!confirm('Clear all conversion history? This cannot be undone.')) return
-    try {
-      await window.electronAPI.clearHistory()
-      setItems([])
-      setTotal(0)
-      setStats({ total: 0, completed: 0, failed: 0 })
-    } catch (err) {
-      console.error('Failed to clear history:', err)
-    }
+  const handleClearAll = useCallback(() => {
+    setConfirmDialog({
+      open: true,
+      title: 'Clear All History',
+      description: 'Clear all conversion history? This cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await window.electronAPI.clearHistory()
+          setItems([])
+          setTotal(0)
+          setStats({ total: 0, completed: 0, failed: 0 })
+        } catch (err) {
+          console.error('Failed to clear history:', err)
+        }
+      },
+    })
   }, [])
 
   const handleDeleteItem = useCallback(async (id: number) => {
@@ -227,17 +317,61 @@ export default function HistoryView() {
             </div>
           </div>
 
-          {items.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearAll}
-              className="text-zinc-500 hover:text-red-400 gap-1.5"
-            >
-              <Trash2 size={14} />
-              Clear all
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {selectedIds.size > 0 && (
+              <>
+                <span className="text-xs text-zinc-500">{selectedIds.size} selected</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                  className="text-zinc-500 hover:text-red-400 gap-1.5 h-7"
+                >
+                  <Trash2 size={14} />
+                  Delete
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBulkExport}
+                  className="text-zinc-500 hover:text-emerald-400 gap-1.5 h-7"
+                >
+                  <Download size={14} />
+                  Export CSV
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSelection}
+                  className="text-zinc-500 hover:text-zinc-300 gap-1.5 h-7"
+                >
+                  Clear
+                </Button>
+              </>
+            )}
+            {items.length > 0 && selectedIds.size === 0 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={selectAll}
+                  className="text-zinc-500 hover:text-zinc-300 gap-1.5 h-7"
+                >
+                  <CheckSquare size={14} />
+                  Select all
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearAll}
+                  className="text-zinc-500 hover:text-red-400 gap-1.5"
+                >
+                  <Trash2 size={14} />
+                  Clear all
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Search + Filters */}
@@ -305,8 +439,20 @@ export default function HistoryView() {
                           item.status === 'completed'
                             ? 'bg-zinc-900/30 border-zinc-800/50'
                             : 'bg-red-950/10 border-red-900/20'
-                        }`}
+                        } ${selectedIds.has(item.id) ? 'ring-2 ring-violet-500/30' : ''}`}
                       >
+                        {/* Selection checkbox */}
+                        <button
+                          onClick={() => toggleSelect(item.id)}
+                          className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center border border-zinc-700 hover:border-violet-500 transition-colors"
+                        >
+                          {selectedIds.has(item.id) ? (
+                            <CheckSquare size={16} className="text-violet-400" />
+                          ) : (
+                            <Square size={16} className="text-zinc-600" />
+                          )}
+                        </button>
+
                         {/* Category icon */}
                         <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border ${
                           category ? getCategoryBgColor(category) : 'bg-zinc-800/50 border-zinc-700/50'
@@ -362,13 +508,22 @@ export default function HistoryView() {
                         {/* Actions */}
                         <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           {item.status === 'completed' && item.output_path && (
-                            <button
-                              onClick={() => handleShowInFolder(item.output_path)}
-                              className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
-                              title="Show in folder"
-                            >
-                              <FolderOpen size={14} />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => setComparisonItem(item)}
+                                className="p-1.5 rounded-md text-zinc-500 hover:text-violet-400 hover:bg-zinc-800 transition-colors"
+                                title="Compare files"
+                              >
+                                <ArrowRight size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleShowInFolder(item.output_path)}
+                                className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                                title="Show in folder"
+                              >
+                                <FolderOpen size={14} />
+                              </button>
+                            </>
                           )}
                           <button
                             onClick={() => handleDeleteItem(item.id)}
@@ -428,6 +583,48 @@ export default function HistoryView() {
             <span>Some conversions failed. Hover over failed items to see error details.</span>
           </div>
         </div>
+      )}
+
+      {/* Comparison Modal */}
+      {comparisonItem && (
+        <ComparisonModal
+          sourceFile={{
+            path: comparisonItem.source_path,
+            name: comparisonItem.source_name,
+            size: comparisonItem.source_size,
+            ext: comparisonItem.source_ext,
+          }}
+          outputFile={{
+            path: comparisonItem.output_path,
+            name: comparisonItem.output_path.split('/').pop() || '',
+          }}
+          onClose={() => setComparisonItem(null)}
+        />
+      )}
+
+      {/* Confirm Dialog */}
+      {confirmDialog && (
+        <AlertDialog
+          open={confirmDialog.open}
+          onOpenChange={(open) => !open && setConfirmDialog(null)}
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+          confirmText="Delete"
+          cancelText="Cancel"
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+          variant="destructive"
+        />
+      )}
+
+      {/* Alert Dialog */}
+      {alertDialog && (
+        <AlertDialog
+          open={alertDialog.open}
+          onOpenChange={(open) => !open && setAlertDialog(null)}
+          title={alertDialog.title}
+          description={alertDialog.description}
+        />
       )}
     </div>
   )

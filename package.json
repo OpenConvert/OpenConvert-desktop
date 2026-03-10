@@ -1,7 +1,7 @@
 {
   "name": "openconvert",
   "private": true,
-  "version": "1.3.3",
+  "version": "1.4.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -28,7 +28,12 @@
     "linux": {
       "target": [
         "AppImage",
-        "snap"
+        "snap",
+        "deb",
+        "rpm",
+        "tar.gz",
+        "zip",
+        "7z"
       ],
       "category": "Utility"
     }

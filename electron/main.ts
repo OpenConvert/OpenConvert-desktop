@@ -207,6 +207,16 @@ ipcMain.handle('get-file-info', async (_event, filePath: string) => {
 // File Conversion
 // ========================================
 
+interface ImageOptimizationOptions {
+    resize?: {
+        width?: number
+        height?: number
+        fit?: 'cover' | 'contain' | 'fill' | 'inside' | 'outside'
+    }
+    rotate?: number
+    stripMetadata?: boolean
+}
+
 interface ConvertFilePayload {
     sourcePath: string
     sourceExt: string
@@ -214,6 +224,7 @@ interface ConvertFilePayload {
     sourceSize: number
     targetFormat: string
     fileId: string
+    imageOptions?: ImageOptimizationOptions
 }
 
 interface ConvertPayload {
@@ -273,12 +284,15 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
 
     await processWithConcurrency(filesToConvert, concurrency, async (file) => {
         const category = getConverterCategory(file.sourceExt)
+        const startTime = Date.now()
 
         // Send progress: starting
         mainWindow?.webContents.send('conversion-progress', {
             fileId: file.fileId,
             progress: 10,
             status: 'converting',
+            currentOperation: 'Initializing...',
+            startTime,
         })
 
         let result: { success: boolean; outputPath: string; error?: string; durationMs: number }
@@ -289,6 +303,8 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
                 fileId: file.fileId,
                 progress: 30,
                 status: 'converting',
+                currentOperation: 'Processing image...',
+                startTime,
             })
 
             result = await convertImage({
@@ -297,6 +313,7 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
                 targetFormat: file.targetFormat,
                 quality,
                 overwriteBehavior,
+                optimizations: file.imageOptions,
             })
 
             // Send progress: almost done
@@ -304,6 +321,8 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
                 fileId: file.fileId,
                 progress: 90,
                 status: 'converting',
+                currentOperation: 'Finalizing...',
+                startTime,
             })
         } else if (category === 'video' && isVideoFormat(file.sourceExt)) {
             // Video conversion with progress tracking
@@ -314,10 +333,16 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
                 quality,
                 overwriteBehavior,
                 onProgress: (percent) => {
+                    const elapsed = (Date.now() - startTime) / 1000 // seconds
+                    const eta = percent > 0 ? Math.round((elapsed / percent) * (100 - percent)) : 0
+                    
                     mainWindow?.webContents.send('conversion-progress', {
                         fileId: file.fileId,
                         progress: percent,
                         status: 'converting',
+                        currentOperation: 'Encoding video...',
+                        eta,
+                        startTime,
                     })
                 },
             })
@@ -330,10 +355,16 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
                 quality,
                 overwriteBehavior,
                 onProgress: (percent) => {
+                    const elapsed = (Date.now() - startTime) / 1000 // seconds
+                    const eta = percent > 0 ? Math.round((elapsed / percent) * (100 - percent)) : 0
+                    
                     mainWindow?.webContents.send('conversion-progress', {
                         fileId: file.fileId,
                         progress: percent,
                         status: 'converting',
+                        currentOperation: 'Encoding audio...',
+                        eta,
+                        startTime,
                     })
                 },
             })
@@ -343,6 +374,8 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
                 fileId: file.fileId,
                 progress: 50,
                 status: 'converting',
+                currentOperation: 'Converting document...',
+                startTime,
             })
 
             result = await convertDocument({

@@ -1,143 +1,37 @@
-# OpenConvert v1.3.3 Release Notes
+# OpenConvert v1.4.0 Release Notes
 
-After extensive development, we're excited to release OpenConvert v1.3.3 with major improvements, restored features, and a completely revamped user experience.
-
-## What's Changed
-
-This release represents a significant evolution of OpenConvert with a focus on feature completeness, user experience, and reliability.
+We are excited to announce OpenConvert v1.4.0! This release brings powerful new features, including advanced optimization options, smart format suggestions, and a more polished user interface.
 
 ## Major Features
 
-### 🎨 Complete UI Overhaul
-* **Modern React + TypeScript stack** - Migrated from Vue.js to React for better performance and type safety
-* **New technology stack**: React 19, Electron, Vite, Tailwind CSS 4.2, shadcn/ui components
-* **Custom titlebar** - Frameless window with native-like controls
-* **Collapsible sidebar** - Toggle between expanded and compact views
-* **Dark theme** - Beautiful dark UI with violet/indigo gradient accents
-* **Responsive layout** - Adaptive interface that responds to window resizing
+### ✨ Format Auto-Detection & Smart Suggestions
+* **Intelligent recommendations** based on use cases (Web Optimized, Maximum Quality, Smallest File Size, Universal Compatibility).
+* **Estimated output file size** calculation before starting the conversion.
+* **Contextual suggestions** based on file characteristics, displayed with sparkle (✨) icons.
 
-### 🔄 Restored & Enhanced Conversion Support
-* **✅ Image conversion** - Fully working with Sharp library (PNG, JPEG, WebP, GIF, BMP, AVIF, TIFF, SVG, ICO, JPEG XL)
-* **✅ Video conversion** - Restored with FFmpeg support (MP4, MKV, AVI, MOV, WebM, 3GP, FLV, WMV)
-* **✅ Audio conversion** - Restored with FFmpeg support (MP3, WAV, AAC, OGG, FLAC, WMA, M4A)
-* **✅ Document conversion** - Added Pandoc support (PDF, EPUB, DOCX, TXT, RTF, ODT, XPS, CBZ, MOBI, FB2)
-* **Real-time progress tracking** - Visual progress bars for video and audio conversions
-* **Video to GIF** - Convert video files to animated GIFs
+### ⚙️ Image, Video, and Audio Optimizations
+* **Image Optimizations**: Set custom width and height with various fit modes, rotate images (0-270°), and strip EXIF metadata for privacy.
+* **Video & Audio Options**: Fine-tune bitrates, resolutions (from 360p up to 4K), and frame rates (24, 30, 60 fps).
+* **Batch or Per-file Settings**: Apply settings across a batch or individually, with real-time previews.
 
-### 📊 New: History System
-* **SQLite3 database integration** - Now actively in use (previously tested but unused)
-* **Complete conversion history** - Track all conversions with detailed metadata
-* **Search & filter** - Find conversions by filename and filter by status
-* **Grouped timeline** - Organized by Today, Yesterday, Last 7 days, Older
-* **Quick actions**: 
-  - Show file in folder
-  - Delete individual entries
-  - Clear all history
-* **Pagination support** - Efficiently handle large conversion histories
+### 📊 History & Comparison Enhancements
+* **Comparison View**: Side-by-side comparison of original and converted files, including visual thumbnails, file size percentage changes, and metadata differences.
+* **Bulk Operations**: Multi-select items in the History view for bulk deletion or export to CSV.
+* **Re-convert Completed Files**: Simply click the rotate (🔄) icon to reset a completed file to pending status and re-convert it with new settings.
 
-### 📈 New: Analytics Dashboard
-* **Conversion statistics** - Total conversions, success/failure rates, file sizes processed
-* **Format analytics** - Most used source and target formats
-* **Performance metrics** - Fastest, slowest, and average conversion times
-* **Category breakdown** - Conversions by type (image/video/audio/document)
-* **Visual stats cards** - Beautiful dashboard with color-coded metrics
+### 🔄 Enhanced Progress Feedback
+* **Real-time ETA calculations** based on conversion progress.
+* **Current operation display** keeps you informed on the exact step (e.g., "Encoding video...", "Processing image...").
+* **Accurate start time tracking** for precise duration estimates.
 
-### ⚙️ New: Complete Settings System
-* **General settings**:
-  - Default output directory configuration
-  - Auto-open folder after conversion
-  - Show advanced settings toggle
-  - Maximum file size and count limits
-* **Conversion settings**:
-  - Quality presets (Low/Medium/High/Maximum)
-  - Overwrite behavior (Auto-rename/Skip/Overwrite)
-  - Concurrency control (1-10 simultaneous conversions)
-* **Persistent storage** - All settings saved to SQLite database
-* **Appearance options** - Theme preferences
-* **About section** - Version info and documentation links
+## UI & UX Improvements
 
-### 🎯 Enhanced Conversion Experience
-* **Per-file format selection** - Choose different target formats for each file
-* **Per-file quality control** - Configure quality settings individually
-* **Batch processing** - Convert multiple files with configurable concurrency
-* **Smart thumbnail generation** - Automatic previews for images and videos
-* **Category-based organization** - Color-coded files by type (green=image, blue=document, yellow=video, pink=audio)
-* **Better error handling** - Clear error messages and status indicators
-* **Overwrite protection** - Auto-rename with numbered copies (file (1).jpg)
-
-## UI Improvements
-
-* **Enhanced drag & drop** - Improved file upload area with visual feedback
-* **File queue management** - Add, remove, and organize files before conversion
-* **Image preview** - Click thumbnails to preview uploaded images
-* **Status indicators** - Visual feedback for pending, converting, done, and error states
-* **Empty state onboarding** - Helpful UI when no files are loaded
-* **Keyboard shortcuts**:
-  - `F12` / `Ctrl+Shift+I` - Toggle DevTools
-  - `Ctrl+,` - Open Settings
-  - `Ctrl+Shift+H` - Open History
+* **Custom Alert Dialog System**: Replaced native browser alerts with custom, themed `AlertDialog` components matching the app's dark aesthetics (complete with backdrop blur and smooth focus management).
+* **Professional Checkboxes**: Integrated shadcn-ui styled accessible checkboxes featuring smooth animations, keyboard support, and proper ARIA labels.
+* **Progress Bar Fixes**: Progress percentage overlays are now permanently visible, centered, and cleanly stylized over the progress bar.
+* **Usability Enhancements**: Introduced collapsible optimization panels, visual ring effects for selected history items, and an overall cleaner settings layout.
 
 ## Technical Improvements
 
-* **Technology stack changes**:
-  - React 19.2.0 (from Vue.js)
-  - TypeScript 5.9.3 for type safety
-  - Vite 7.3.1 (maintained from electron-vite)
-  - Tailwind CSS 4.2.1 (upgraded)
-  - shadcn/ui component library (from daisyUI)
-  - Better-SQLite3 12.6.2 for database operations
-* **Improved architecture**:
-  - IPC communication between main and renderer processes
-  - Centralized format configuration in `/src/config/formats.ts`
-  - Better separation of concerns
-* **Build improvements**:
-  - Linux AppImage and Snap support
-  - Windows and macOS build configurations
-  - Optimized electron-builder settings
-
-## Plugins (Coming Soon)
-
-* Placeholder view added for future plugin system
-* Planned: Custom converters via plugin architecture
-
-## Bug Fixes
-
-* Fixed file size handling and validation
-* Improved error messages for missing dependencies (FFmpeg, Pandoc)
-* Better handling of file overwrite scenarios
-* Fixed conversion queue management issues
-
-## Breaking Changes
-
-* Configuration from previous versions will not migrate automatically
-* New database schema for history and settings
-
-## Requirements
-
-* **Built-in support**: Image conversions work out of the box
-* **Optional dependencies**:
-  - FFmpeg required for video and audio conversions
-  - Pandoc required for document conversions
-
-## Download
-
-Available for Linux:
-- AppImage (portable)
-- Snap package
-
-See the [Installation Guide](README.md#installation) for detailed instructions.
-
-## What's Next
-
-We're actively working on:
-- Enhanced plugin system for custom converters
-- More format support
-- Cloud storage integration
-- Batch conversion presets
-- Command-line interface
-
----
-
-**Full Changelog**: [View all changes](../../compare/v1.0.0...v1.3.3)
-
-Thank you to all contributors and users who provided feedback!
+* **Type Safety & Architecture**: Introduced comprehensive TypeScript interfaces for all optimization options, improved component modularity, and clean separation of concerns.
+* **Performance Enhancements**: Lazy-loaded thumbnails, efficient progress updates, and optimized memory management to ensure a smoother experience during batch operations.

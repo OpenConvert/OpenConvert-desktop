@@ -4,9 +4,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { AlertDialog } from '@/components/ui/alert-dialog'
 import DropZone from '@/components/DropZone'
 import FileList from '@/components/FileList'
 import type { ConvertFile } from '@/components/FileList'
+import ImageOptimizationPanel from '@/components/ImageOptimizationPanel'
+import MediaOptimizationPanel from '@/components/MediaOptimizationPanel'
 import { getTargetFormats, getFileCategory } from '@/lib/formats'
 import { useSettings } from '@/contexts/SettingsContext'
 import { QUALITY_LABELS, QUALITY_VALUES } from '@/lib/settings'
@@ -26,6 +29,9 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
   const [showAdvanced, setShowAdvanced] = useState(settings.showAdvancedSettings)
   const [batchQuality, setBatchQuality] = useState<QualityPreset | null>(null) // null = use global setting
   const [batchOverwrite, setBatchOverwrite] = useState<OverwriteBehavior | null>(null)
+  const [imageOptions, setImageOptions] = useState<ImageOptimizationOptions | undefined>(undefined)
+  const [mediaOptions, setMediaOptions] = useState<MediaOptimizationOptions | undefined>(undefined)
+  const [alertDialog, setAlertDialog] = useState<{ open: boolean; title: string; description: string } | null>(null)
   const dragCounter = useRef(0)
 
   // Listen for real-time conversion progress from the main process
@@ -39,6 +45,9 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
             progress: data.progress,
             status: data.status,
             error: data.error,
+            currentOperation: data.currentOperation,
+            eta: data.eta,
+            startTime: data.startTime,
           }
         })
       )
@@ -60,7 +69,11 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
     const availableSlots = maxFileCount - currentFileCount
     
     if (currentFileCount >= maxFileCount) {
-      alert(`Maximum file limit reached (${maxFileCount} files). Please remove some files before adding more.`)
+      setAlertDialog({
+        open: true,
+        title: 'Maximum File Limit Reached',
+        description: `You have reached the maximum limit of ${maxFileCount} files. Please remove some files before adding more.`,
+      })
       return
     }
     
@@ -79,18 +92,22 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
     
     // Show warning for oversized files
     if (oversizedFiles.length > 0) {
-      alert(
-        `The following files exceed the maximum size limit of ${settings.maxFileSizeMB} MB and were skipped:\n\n${oversizedFiles.join('\n')}`
-      )
+      setAlertDialog({
+        open: true,
+        title: 'Files Exceed Size Limit',
+        description: `The following files exceed the maximum size limit of ${settings.maxFileSizeMB} MB and were skipped:\n\n${oversizedFiles.join('\n')}`,
+      })
     }
     
     // Limit to available slots
     const filesToAdd = validFiles.slice(0, availableSlots)
     
     if (filesToAdd.length < validFiles.length) {
-      alert(
-        `Only ${filesToAdd.length} of ${validFiles.length} files can be added due to the maximum file limit (${maxFileCount} files total).`
-      )
+      setAlertDialog({
+        open: true,
+        title: 'Partial Files Added',
+        description: `Only ${filesToAdd.length} of ${validFiles.length} files can be added due to the maximum file limit (${maxFileCount} files total).`,
+      })
     }
     
     if (filesToAdd.length === 0) {
@@ -99,6 +116,10 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
     
     const convertFiles: ConvertFile[] = filesToAdd.map((f) => {
       const targets = getTargetFormats(f.ext)
+      const qualityPreset = batchQuality || settings.conversionQuality
+      const qualityValue = QUALITY_VALUES[qualityPreset]
+      const category = getFileCategory(f.ext)
+      
       return {
         id: `${f.path}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         path: f.path,
@@ -108,6 +129,8 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
         targetFormat: targets[0] ?? 'png',
         status: 'pending' as const,
         progress: 0,
+        quality: qualityValue,
+        imageOptions: category === 'image' ? imageOptions : undefined,
       }
     })
     setFiles((prev) => [...prev, ...convertFiles])
@@ -120,6 +143,16 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
   const handleTargetFormatChange = useCallback((id: string, format: string) => {
     setFiles((prev) =>
       prev.map((f) => (f.id === id ? { ...f, targetFormat: format } : f))
+    )
+  }, [setFiles])
+
+  const handleReconvert = useCallback((id: string) => {
+    setFiles((prev) =>
+      prev.map((f) => 
+        f.id === id 
+          ? { ...f, status: 'pending' as const, progress: 0, error: undefined, currentOperation: undefined, eta: undefined }
+          : f
+      )
     )
   }, [setFiles])
 
@@ -150,7 +183,11 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
     if (pendingFiles.length === 0) return
 
     if (!outputDir) {
-      alert('Please select an output folder first.')
+      setAlertDialog({
+        open: true,
+        title: 'Output Folder Required',
+        description: 'Please select an output folder before converting files.',
+      })
       return
     }
 
@@ -172,6 +209,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
         sourceSize: f.size,
         targetFormat: f.targetFormat,
         fileId: f.id,
+        imageOptions: f.imageOptions,
       })),
       quality,
       concurrency,
@@ -369,6 +407,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
               files={files}
               onRemoveFile={handleRemoveFile}
               onTargetFormatChange={handleTargetFormatChange}
+              onReconvert={handleReconvert}
             />
           </div>
 
@@ -420,11 +459,13 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
                   </div>
 
                   {/* Reset to defaults */}
-                  {(batchQuality || batchOverwrite) && (
+                  {(batchQuality || batchOverwrite || imageOptions || mediaOptions) && (
                     <button
                       onClick={() => {
                         setBatchQuality(null)
                         setBatchOverwrite(null)
+                        setImageOptions(undefined)
+                        setMediaOptions(undefined)
                       }}
                       className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
                     >
@@ -432,6 +473,38 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
                     </button>
                   )}
                 </div>
+
+                {/* Image Optimization Options */}
+                {files.some(f => getFileCategory(f.ext) === 'image') && (
+                  <div className="mt-3">
+                    <ImageOptimizationPanel
+                      imageOptions={imageOptions}
+                      onOptionsChange={setImageOptions}
+                    />
+                  </div>
+                )}
+
+                {/* Video Optimization Options */}
+                {files.some(f => getFileCategory(f.ext) === 'video') && (
+                  <div className="mt-3">
+                    <MediaOptimizationPanel
+                      mediaOptions={mediaOptions}
+                      onOptionsChange={setMediaOptions}
+                      type="video"
+                    />
+                  </div>
+                )}
+
+                {/* Audio Optimization Options */}
+                {files.some(f => getFileCategory(f.ext) === 'audio') && (
+                  <div className="mt-3">
+                    <MediaOptimizationPanel
+                      mediaOptions={mediaOptions}
+                      onOptionsChange={setMediaOptions}
+                      type="audio"
+                    />
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -509,6 +582,16 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
             </div>
           </div>
         </div>
+      )}
+
+      {/* Alert Dialog */}
+      {alertDialog && (
+        <AlertDialog
+          open={alertDialog.open}
+          onOpenChange={(open) => !open && setAlertDialog(null)}
+          title={alertDialog.title}
+          description={alertDialog.description}
+        />
       )}
     </div>
   )
