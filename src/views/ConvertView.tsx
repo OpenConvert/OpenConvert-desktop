@@ -1,19 +1,24 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { FolderOutput, Zap, Settings2, Image, FileText, Film, Music, Plus, Trash2, Upload, ChevronDown, ChevronUp } from 'lucide-react'
+import { FolderOutput, Zap, Settings2, Image, FileText, Film, Music, Plus, Trash2, Upload, ChevronDown, ChevronUp, Folder } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AlertDialog } from '@/components/ui/alert-dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import DropZone from '@/components/DropZone'
 import FileList from '@/components/FileList'
 import type { ConvertFile } from '@/components/FileList'
 import ImageOptimizationPanel from '@/components/ImageOptimizationPanel'
 import MediaOptimizationPanel from '@/components/MediaOptimizationPanel'
+import { PresetDialog } from '@/components/PresetDialog'
+import { PresetDropdown } from '@/components/PresetDropdown'
+import { EditMetadataDialog } from '@/components/EditMetadataDialog'
 import { getTargetFormats, getFileCategory } from '@/lib/formats'
 import { useSettings } from '@/contexts/SettingsContext'
 import { QUALITY_LABELS, QUALITY_VALUES } from '@/lib/settings'
 import type { QualityPreset, OverwriteBehavior } from '@/lib/settings'
+import type { Preset } from '@/lib/presets'
 
 interface ConvertViewProps {
   files: ConvertFile[]
@@ -32,6 +37,8 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
   const [imageOptions, setImageOptions] = useState<ImageOptimizationOptions | undefined>(undefined)
   const [mediaOptions, setMediaOptions] = useState<MediaOptimizationOptions | undefined>(undefined)
   const [alertDialog, setAlertDialog] = useState<{ open: boolean; title: string; description: string } | null>(null)
+  const [showPresetDialog, setShowPresetDialog] = useState(false)
+  const [editingMetadata, setEditingMetadata] = useState<string | null>(null) // File ID being edited
   const dragCounter = useRef(0)
 
   // Listen for real-time conversion progress from the main process
@@ -169,6 +176,72 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
     }
   }, [handleFilesAdded])
 
+  const handleAddFolder = useCallback(async () => {
+    try {
+      const newFiles = await window.electronAPI.openFolderDialog()
+      if (newFiles.length > 0) handleFilesAdded(newFiles)
+    } catch (err) {
+      console.error('Failed to open folder dialog:', err)
+    }
+  }, [handleFilesAdded])
+
+  const handleSelectPreset = useCallback((preset: Preset) => {
+    const settings = preset.settings as any
+    
+    // Apply preset settings to all pending files
+    setFiles((prev) =>
+      prev.map((f) => {
+        if (f.status !== 'pending') return f
+        
+        // Update target format
+        const updated: ConvertFile = {
+          ...f,
+          targetFormat: settings.targetFormat,
+        }
+        
+        // Apply video/audio settings if applicable
+        if (settings.resolution || settings.videoBitrate || settings.videoCodec) {
+          updated.mediaOptions = {
+            resolution: settings.resolution,
+            videoBitrate: settings.videoBitrate,
+            audioBitrate: settings.audioBitrate,
+            fps: settings.fps,
+            codec: {
+              video: settings.videoCodec,
+              audio: settings.audioCodec,
+            }
+          }
+        }
+        
+        // Apply image settings if applicable
+        if (settings.width || settings.height || settings.quality) {
+          updated.imageOptions = {
+            resize: settings.width || settings.height ? {
+              width: settings.width,
+              height: settings.height,
+              fit: settings.fit,
+            } : undefined,
+          }
+          if (settings.quality) {
+            updated.quality = settings.quality
+          }
+        }
+        
+        return updated
+      })
+    )
+  }, [setFiles])
+
+  const handleEditMetadata = useCallback((fileId: string) => {
+    setEditingMetadata(fileId)
+  }, [])
+
+  const handleSaveMetadata = useCallback((fileId: string, metadata: FileMetadata) => {
+    setFiles((prev) =>
+      prev.map((f) => (f.id === fileId ? { ...f, metadata } : f))
+    )
+  }, [setFiles])
+
   const handleSelectOutputDir = useCallback(async () => {
     try {
       const dir = await window.electronAPI.selectOutputDir()
@@ -210,6 +283,8 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
         targetFormat: f.targetFormat,
         fileId: f.id,
         imageOptions: f.imageOptions,
+        mediaOptions: f.mediaOptions,
+        metadata: f.metadata,
       })),
       quality,
       concurrency,
@@ -370,16 +445,41 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
         <>
           {/* Top Toolbar */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/50 flex-shrink-0">
-            {/* Left side: Add More Files */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddMoreFiles}
-              className="gap-2 bg-zinc-900 border-zinc-700/50 hover:bg-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-white transition-all"
-            >
-              <Plus size={14} />
-              Add Files
-            </Button>
+            {/* Left side: Add More Files/Folder */}
+            <div className="flex gap-2">
+              <div className="flex gap-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddMoreFiles}
+                  className="gap-2 bg-zinc-900 border-zinc-700/50 hover:bg-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-white transition-all rounded-r-none border-r-0"
+                >
+                  <Plus size={14} />
+                  Add Files
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="px-2 bg-zinc-900 border-zinc-700/50 hover:bg-zinc-800 hover:border-zinc-600 text-zinc-300 hover:text-white transition-all rounded-l-none"
+                    >
+                      <ChevronDown size={14} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="bg-zinc-900 border-zinc-700">
+                    <DropdownMenuItem onClick={handleAddMoreFiles} className="text-sm cursor-pointer">
+                      <Plus size={14} className="mr-2" />
+                      Add Files
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleAddFolder} className="text-sm cursor-pointer">
+                      <Folder size={14} className="mr-2" />
+                      Add Folder
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
 
             {/* Right side: File count + Clear all */}
             <div className="flex items-center gap-3">
@@ -408,6 +508,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
               onRemoveFile={handleRemoveFile}
               onTargetFormatChange={handleTargetFormatChange}
               onReconvert={handleReconvert}
+              onEditMetadata={handleEditMetadata}
             />
           </div>
 
@@ -513,19 +614,64 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
           <Separator className="bg-zinc-800/50" />
           <div className="flex-shrink-0 px-6 py-4 bg-[#0a0a0b]/95 backdrop-blur-xl border-t border-zinc-800/30">
             <div className="flex items-center justify-between">
-              {/* Left: output dir + stats */}
+              {/* Left: presets + output dir + stats */}
               <div className="flex items-center gap-4">
-                <button
-                  onClick={handleSelectOutputDir}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-xs text-zinc-400 hover:text-zinc-300 transition-all"
-                >
-                  <FolderOutput size={14} />
-                  {outputDir ? (
-                    <span className="max-w-[180px] truncate">{outputDir}</span>
-                  ) : (
-                    'Output folder'
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  {/* Presets Button with dropdown */}
+                  <PresetDropdown onSelectPreset={handleSelectPreset} />
+
+                  {/* Select Output Folder with dropdown */}
+                  <div className="flex gap-0">
+                    <button
+                      onClick={handleSelectOutputDir}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-xs text-zinc-400 hover:text-zinc-300 transition-all rounded-r-none border-r-0"
+                    >
+                      <FolderOutput size={14} />
+                      {outputDir ? (
+                        <span className="max-w-[180px] truncate">{outputDir}</span>
+                      ) : (
+                        'Output folder'
+                      )}
+                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="px-2 py-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-xs text-zinc-400 hover:text-zinc-300 transition-all rounded-l-none"
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="bg-zinc-900 border-zinc-700 text-zinc-300 min-w-[200px]">
+                        <DropdownMenuItem 
+                          onClick={() => setOutputDir('__same_as_source__')} 
+                          className="text-sm cursor-pointer hover:bg-zinc-800 focus:bg-zinc-800"
+                        >
+                          <Folder size={14} className="mr-2" />
+                          Same as source
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            if (settings.defaultOutputDir) {
+                              setOutputDir(settings.defaultOutputDir)
+                            }
+                          }} 
+                          className="text-sm cursor-pointer hover:bg-zinc-800 focus:bg-zinc-800"
+                        >
+                          <FolderOutput size={14} className="mr-2" />
+                          Use default folder
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-zinc-800" />
+                        <DropdownMenuItem 
+                          onClick={handleSelectOutputDir} 
+                          className="text-sm cursor-pointer hover:bg-zinc-800 focus:bg-zinc-800"
+                        >
+                          <Folder size={14} className="mr-2" />
+                          Browse and select
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
 
                 <div className="flex items-center gap-3 text-xs text-zinc-600">
                   {Object.entries(categoryCounts).map(([cat, count]) => (
@@ -593,6 +739,30 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
           description={alertDialog.description}
         />
       )}
+
+      {/* Preset Dialog */}
+      <PresetDialog
+        open={showPresetDialog}
+        onOpenChange={setShowPresetDialog}
+        onSelectPreset={handleSelectPreset}
+      />
+
+      {/* Edit Metadata Dialog */}
+      {editingMetadata && (() => {
+        const file = files.find(f => f.id === editingMetadata)
+        if (!file) return null
+        return (
+          <EditMetadataDialog
+            open={true}
+            onOpenChange={(open) => !open && setEditingMetadata(null)}
+            fileName={file.name}
+            fileExt={file.ext}
+            filePath={file.path}
+            metadata={file.metadata || {}}
+            onSave={(metadata) => handleSaveMetadata(file.id, metadata)}
+          />
+        )
+      })()}
     </div>
   )
 }

@@ -9,6 +9,7 @@ export interface VideoConvertOptions {
     quality: number          // 1-100
     overwriteBehavior: 'skip' | 'rename' | 'overwrite'
     onProgress?: (percent: number) => void
+    metadata?: Record<string, string> // Custom metadata to embed
 }
 
 export interface ConvertResult {
@@ -139,6 +140,7 @@ export async function convertVideo(options: VideoConvertOptions): Promise<Conver
             format: targetFormat,
             quality,
             onProgress,
+            metadata: options.metadata,
         })
 
         if (!result.success) {

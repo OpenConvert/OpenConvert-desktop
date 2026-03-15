@@ -31,7 +31,7 @@ import {
     generateImageThumbnail,
     generateVideoThumbnail,
 } from './converters'
-import { getFileDialogFilters } from './config/formats'
+import { getFileDialogFilters, isFormatSupported } from './config/formats'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isDev = !!process.env.VITE_DEV_SERVER_URL
@@ -177,6 +177,55 @@ ipcMain.handle('open-file-dialog', async () => {
     return fileInfos
 })
 
+// Folder dialog with recursive file scanning
+ipcMain.handle('open-folder-dialog', async () => {
+    if (!mainWindow) return []
+
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory'],
+    })
+
+    if (result.canceled) return []
+
+    const folderPath = result.filePaths[0]
+    const fileInfos: Array<{ path: string; name: string; ext: string; size: number }> = []
+
+    // Recursive function to scan directory
+    async function scanDirectory(dirPath: string) {
+        const entries = await fs.readdir(dirPath, { withFileTypes: true })
+        
+        for (const entry of entries) {
+            const fullPath = path.join(dirPath, entry.name)
+            
+            if (entry.isDirectory()) {
+                // Recursively scan subdirectories
+                await scanDirectory(fullPath)
+            } else if (entry.isFile()) {
+                const ext = path.extname(entry.name).slice(1).toLowerCase()
+                
+                // Check if file format is supported
+                if (isFormatSupported(ext)) {
+                    const stat = await fs.stat(fullPath)
+                    fileInfos.push({
+                        path: fullPath,
+                        name: entry.name,
+                        ext,
+                        size: stat.size,
+                    })
+                }
+            }
+        }
+    }
+
+    try {
+        await scanDirectory(folderPath)
+    } catch (err) {
+        console.error('[main] Failed to scan directory:', err)
+    }
+
+    return fileInfos
+})
+
 // Save dialog for output directory
 ipcMain.handle('select-output-dir', async () => {
     if (!mainWindow) return null
@@ -217,6 +266,17 @@ interface ImageOptimizationOptions {
     stripMetadata?: boolean
 }
 
+interface MediaOptimizationOptions {
+    videoBitrate?: string
+    audioBitrate?: string
+    resolution?: string
+    fps?: number
+    codec?: {
+        video?: string
+        audio?: string
+    }
+}
+
 interface ConvertFilePayload {
     sourcePath: string
     sourceExt: string
@@ -225,6 +285,8 @@ interface ConvertFilePayload {
     targetFormat: string
     fileId: string
     imageOptions?: ImageOptimizationOptions
+    mediaOptions?: MediaOptimizationOptions
+    metadata?: Record<string, string>
 }
 
 interface ConvertPayload {
@@ -332,6 +394,7 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
                 targetFormat: file.targetFormat,
                 quality,
                 overwriteBehavior,
+                metadata: file.metadata as Record<string, string> | undefined,
                 onProgress: (percent) => {
                     const elapsed = (Date.now() - startTime) / 1000 // seconds
                     const eta = percent > 0 ? Math.round((elapsed / percent) * (100 - percent)) : 0
@@ -354,6 +417,7 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
                 targetFormat: file.targetFormat,
                 quality,
                 overwriteBehavior,
+                metadata: file.metadata,
                 onProgress: (percent) => {
                     const elapsed = (Date.now() - startTime) / 1000 // seconds
                     const eta = percent > 0 ? Math.round((elapsed / percent) * (100 - percent)) : 0

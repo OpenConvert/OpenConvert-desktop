@@ -23,6 +23,22 @@ export interface SettingRecord {
     value: string
 }
 
+export interface PresetRecord {
+    id: string
+    name: string
+    description: string | null
+    category: string
+    tab: string
+    subcategory: string | null
+    icon: string | null
+    settings: string // JSON string
+    is_built_in: number // SQLite boolean (0 or 1)
+    is_recent: number // SQLite boolean (0 or 1)
+    last_used: number | null
+    use_count: number
+    created_at: number
+}
+
 export function getDatabase(): Database.Database {
     if (!db) {
         throw new Error('Database not initialized. Call initDatabase() first.')
@@ -60,8 +76,27 @@ export function initDatabase(): void {
             value TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS presets (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            category TEXT NOT NULL,
+            tab TEXT NOT NULL,
+            subcategory TEXT,
+            icon TEXT,
+            settings TEXT NOT NULL,
+            is_built_in INTEGER NOT NULL DEFAULT 0,
+            is_recent INTEGER NOT NULL DEFAULT 0,
+            last_used INTEGER,
+            use_count INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+        );
+
         CREATE INDEX IF NOT EXISTS idx_conversions_created_at ON conversions(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_conversions_status ON conversions(status);
+        CREATE INDEX IF NOT EXISTS idx_presets_tab ON presets(tab);
+        CREATE INDEX IF NOT EXISTS idx_presets_category ON presets(category);
+        CREATE INDEX IF NOT EXISTS idx_presets_recent ON presets(is_recent, last_used DESC);
     `)
 
     console.log('[database] Database initialized successfully.')
@@ -321,4 +356,53 @@ export function getAnalytics(): AnalyticsData {
         fastestConversion: fastestConversion ?? null,
         slowestConversion: slowestConversion ?? null,
     }
+}
+
+// --- Presets ---
+
+export function insertPreset(data: Omit<PresetRecord, 'created_at'>): PresetRecord {
+    const db = getDatabase()
+    const stmt = db.prepare(`
+        INSERT INTO presets (id, name, description, category, tab, subcategory, icon, settings, is_built_in, is_recent, last_used, use_count, created_at)
+        VALUES (@id, @name, @description, @category, @tab, @subcategory, @icon, @settings, @is_built_in, @is_recent, @last_used, @use_count, @created_at)
+    `)
+    const created_at = Date.now()
+    const result = stmt.run({ ...data, created_at })
+    return { ...data, created_at }
+}
+
+export function getPresets(): PresetRecord[] {
+    const db = getDatabase()
+    return db.prepare('SELECT * FROM presets ORDER BY created_at DESC').all() as PresetRecord[]
+}
+
+export function getPresetById(id: string): PresetRecord | undefined {
+    const db = getDatabase()
+    return db.prepare('SELECT * FROM presets WHERE id = ?').get(id) as PresetRecord | undefined
+}
+
+export function updatePreset(id: string, data: Partial<Omit<PresetRecord, 'id' | 'created_at'>>): boolean {
+    const db = getDatabase()
+    const fields = Object.keys(data).map(key => `${key} = @${key}`).join(', ')
+    const stmt = db.prepare(`UPDATE presets SET ${fields} WHERE id = @id`)
+    const result = stmt.run({ ...data, id })
+    return result.changes > 0
+}
+
+export function deletePreset(id: string): boolean {
+    const db = getDatabase()
+    const stmt = db.prepare('DELETE FROM presets WHERE id = ? AND is_built_in = 0')
+    const result = stmt.run(id)
+    return result.changes > 0
+}
+
+export function markPresetAsUsed(id: string): boolean {
+    const db = getDatabase()
+    const stmt = db.prepare(`
+        UPDATE presets 
+        SET is_recent = 1, last_used = ?, use_count = use_count + 1
+        WHERE id = ?
+    `)
+    const result = stmt.run(Date.now(), id)
+    return result.changes > 0
 }

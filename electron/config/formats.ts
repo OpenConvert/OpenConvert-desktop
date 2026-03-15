@@ -36,6 +36,13 @@ export function getExtensionsByCategory(category: FileCategory): string[] {
 }
 
 /**
+ * Check if a format is supported
+ */
+export function isFormatSupported(ext: string): boolean {
+    return ext.toLowerCase() in FORMAT_MAP
+}
+
+/**
  * Generate file dialog filters for Electron
  */
 export function getFileDialogFilters(): FileFilter[] {

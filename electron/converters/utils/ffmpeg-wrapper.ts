@@ -26,6 +26,7 @@ export interface FFmpegConvertOptions {
     format: string
     quality: number // 1-100
     onProgress?: (percent: number) => void
+    metadata?: Record<string, string> // Custom metadata
 }
 
 export interface FFmpegResult {
@@ -125,8 +126,9 @@ export function buildFFmpegArgs(options: {
     format: string
     quality: number
     isVideo: boolean
+    metadata?: Record<string, string>
 }): string[] {
-    const { inputPath, outputPath, format, quality, isVideo } = options
+    const { inputPath, outputPath, format, quality, isVideo, metadata } = options
     const args: string[] = ['-i', inputPath, '-y'] // -y = overwrite without asking
 
     // Map quality (1-100) to CRF and bitrate
@@ -221,6 +223,15 @@ export function buildFFmpegArgs(options: {
         }
     }
 
+    // Add metadata tags if provided
+    if (metadata) {
+        for (const [key, value] of Object.entries(metadata)) {
+            if (value) {
+                args.push('-metadata', `${key}=${value}`)
+            }
+        }
+    }
+
     args.push(outputPath)
     return args
 }
@@ -250,6 +261,7 @@ export async function executeFFmpeg(options: FFmpegConvertOptions): Promise<FFmp
         format: options.format,
         quality: options.quality,
         isVideo,
+        metadata: options.metadata,
     })
 
     console.log('[ffmpeg-wrapper] Executing:', ffmpegPath, args.join(' '))

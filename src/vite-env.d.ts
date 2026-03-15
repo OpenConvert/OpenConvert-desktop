@@ -35,6 +35,28 @@ interface MediaOptimizationOptions {
     }
 }
 
+// Metadata types
+interface FileMetadata {
+    // Common metadata
+    title?: string
+    artist?: string
+    album?: string
+    composer?: string
+    genre?: string
+    date?: string
+    description?: string
+    comment?: string
+    
+    // Video-specific
+    copyright?: string
+    
+    // Image-specific
+    author?: string
+    
+    // Thumbnail (for images/videos)
+    thumbnail?: string // base64 or path
+}
+
 // Conversion types
 interface ConvertFilePayload {
     sourcePath: string
@@ -44,6 +66,8 @@ interface ConvertFilePayload {
     targetFormat: string
     fileId: string
     imageOptions?: ImageOptimizationOptions
+    mediaOptions?: MediaOptimizationOptions
+    metadata?: FileMetadata
 }
 
 interface ConvertPayload {
@@ -139,6 +163,7 @@ interface ElectronAPI {
 
     // File operations
     openFileDialog: () => Promise<FileInfo[]>
+    openFolderDialog: () => Promise<FileInfo[]>
     selectOutputDir: () => Promise<string | null>
     getFileInfo: (filePath: string) => Promise<FileInfo | null>
 

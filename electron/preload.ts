@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // File operations
     openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
+    openFolderDialog: () => ipcRenderer.invoke('open-folder-dialog'),
     selectOutputDir: () => ipcRenderer.invoke('select-output-dir'),
     getFileInfo: (filePath: string) => ipcRenderer.invoke('get-file-info', filePath),
 

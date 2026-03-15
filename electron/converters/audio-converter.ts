@@ -9,6 +9,7 @@ export interface AudioConvertOptions {
     quality: number          // 1-100
     overwriteBehavior: 'skip' | 'rename' | 'overwrite'
     onProgress?: (percent: number) => void
+    metadata?: Record<string, string>
 }
 
 export interface ConvertResult {
@@ -139,6 +140,7 @@ export async function convertAudio(options: AudioConvertOptions): Promise<Conver
             format: targetFormat,
             quality,
             onProgress,
+            metadata: options.metadata,
         })
 
         if (!result.success) {

@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from 'react'
-import { X, Image, FileText, Film, Music, ArrowRight, Sparkles, RotateCcw } from 'lucide-react'
+import { X, Image, FileText, Film, Music, ArrowRight, Sparkles, RotateCcw, Tags } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getFileCategory, getTargetFormats, getCategoryColor, getCategoryBgColor, formatFileSize } from '@/lib/formats'
 import { getFormatRecommendations, estimateOutputSize, getRecommendationReason } from '@/lib/format-recommendations'
@@ -20,6 +20,8 @@ export interface ConvertFile {
     eta?: number // Estimated seconds remaining
     startTime?: number // When conversion started
     imageOptions?: ImageOptimizationOptions // Image-specific options (resize, rotate, etc.)
+    mediaOptions?: MediaOptimizationOptions // Video/audio-specific options (bitrate, codec, etc.)
+    metadata?: FileMetadata // Custom metadata to embed in output file
 }
 
 interface FileListProps {
@@ -27,6 +29,7 @@ interface FileListProps {
     onRemoveFile: (id: string) => void
     onTargetFormatChange: (id: string, format: string) => void
     onReconvert?: (id: string) => void // Re-convert a completed file
+    onEditMetadata?: (id: string) => void // Edit file metadata
 }
 
 /** Format seconds into human-readable time */
@@ -96,7 +99,7 @@ const ImageThumbnail = memo(function ImageThumbnail({ filePath }: { filePath: st
     )
 })
 
-export default function FileList({ files, onRemoveFile, onTargetFormatChange, onReconvert }: FileListProps) {
+export default function FileList({ files, onRemoveFile, onTargetFormatChange, onReconvert, onEditMetadata }: FileListProps) {
     if (files.length === 0) return null
 
     return (
@@ -244,6 +247,17 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange, on
 
                         {/* Action buttons */}
                         <div className="flex items-center gap-1">
+                            {/* Edit metadata button for pending files */}
+                            {file.status === 'pending' && onEditMetadata && (category === 'video' || category === 'audio' || category === 'image') && (
+                                <button
+                                    onClick={() => onEditMetadata(file.id)}
+                                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md flex items-center justify-center text-zinc-600 hover:text-violet-400 hover:bg-violet-500/10 transition-all duration-150"
+                                    title="Edit metadata"
+                                >
+                                    <Tags size={12} />
+                                </button>
+                            )}
+                            
                             {/* Re-convert button for completed files */}
                             {file.status === 'done' && onReconvert && (
                                 <button
