@@ -30,6 +30,12 @@ import {
     getConverterCategory,
     generateImageThumbnail,
     generateVideoThumbnail,
+    generateAudioThumbnail,
+    generateDocumentThumbnail,
+    getImageMetadata,
+    getVideoMetadata,
+    getAudioMetadata,
+    getDocumentMetadata,
 } from './converters'
 import { getFileDialogFilters, isFormatSupported } from './config/formats'
 
@@ -513,8 +519,49 @@ ipcMain.handle('generate-thumbnail', async (_event, filePath: string) => {
             return await generateVideoThumbnail(filePath, 128)
         }
         
+        // Try audio waveform
+        if (isAudioFormat(ext)) {
+            return await generateAudioThumbnail(filePath, 128)
+        }
+        
+        // Try document thumbnail (PDF)
+        if (isDocumentFormat(ext)) {
+            return await generateDocumentThumbnail(filePath, 128)
+        }
+        
         return null
     } catch {
+        return null
+    }
+})
+
+// ========================================
+// File Metadata
+// ========================================
+
+ipcMain.handle('get-file-metadata', async (_event, filePath: string) => {
+    try {
+        const ext = path.extname(filePath).slice(1).toLowerCase()
+        
+        if (isImageFormat(ext)) {
+            return await getImageMetadata(filePath)
+        }
+        
+        if (isVideoFormat(ext)) {
+            return await getVideoMetadata(filePath)
+        }
+        
+        if (isAudioFormat(ext)) {
+            return await getAudioMetadata(filePath)
+        }
+        
+        if (isDocumentFormat(ext)) {
+            return await getDocumentMetadata(filePath)
+        }
+        
+        return null
+    } catch (err) {
+        console.error('[main] Failed to get file metadata:', err)
         return null
     }
 })

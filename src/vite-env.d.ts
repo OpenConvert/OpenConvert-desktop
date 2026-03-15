@@ -35,6 +35,17 @@ interface MediaOptimizationOptions {
     }
 }
 
+// File metadata info (dimensions, duration, etc.)
+interface FileMetadataInfo {
+    width?: number
+    height?: number
+    duration?: number // seconds
+    pageCount?: number
+    codec?: string
+    bitrate?: number
+    format?: string
+}
+
 // Metadata types
 interface FileMetadata {
     // Common metadata
@@ -171,8 +182,9 @@ interface ElectronAPI {
     convertFiles: (payload: ConvertPayload) => Promise<ConvertFilesResponse>
     onConversionProgress: (callback: (data: ConversionProgressData) => void) => () => void
 
-    // Thumbnails
+    // Thumbnails & Metadata
     generateThumbnail: (filePath: string) => Promise<string | null>
+    getFileMetadata: (filePath: string) => Promise<FileMetadataInfo | null>
 
     // History
     getHistory: (options: HistoryQueryOptions) => Promise<HistoryQueryResult>

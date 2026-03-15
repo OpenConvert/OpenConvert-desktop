@@ -167,6 +167,12 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
     setFiles([])
   }, [setFiles])
 
+  const handleRenameFile = useCallback((id: string, newName: string) => {
+    setFiles((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, name: newName } : f))
+    )
+  }, [setFiles])
+
   const handleAddMoreFiles = useCallback(async () => {
     try {
       const newFiles = await window.electronAPI.openFileDialog()
@@ -509,6 +515,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
               onTargetFormatChange={handleTargetFormatChange}
               onReconvert={handleReconvert}
               onEditMetadata={handleEditMetadata}
+              onRenameFile={handleRenameFile}
             />
           </div>
 

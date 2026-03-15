@@ -1,6 +1,9 @@
 import path from 'path'
 import fs from 'fs/promises'
+import { spawn } from 'child_process'
 import { executeFFmpeg, probeMediaFile } from './utils/ffmpeg-wrapper'
+import { getFFmpegPath } from './utils/binary-checker'
+import os from 'os'
 
 export interface AudioConvertOptions {
     sourcePath: string
@@ -167,5 +170,75 @@ export async function convertAudio(options: AudioConvertOptions): Promise<Conver
             error: errorMessage,
             durationMs: Date.now() - startTime,
         }
+    }
+}
+
+/**
+ * Generate a waveform thumbnail for an audio file.
+ * Returns a base64 data URL of the waveform visualization.
+ */
+export async function generateThumbnail(
+    filePath: string,
+    size: number = 128
+): Promise<string | null> {
+    try {
+        const ffmpegPath = await getFFmpegPath()
+        if (!ffmpegPath) {
+            console.error('[audio-converter] FFmpeg not available for waveform generation')
+            return null
+        }
+
+        const tmpPath = path.join(os.tmpdir(), `wave-${Date.now()}.png`)
+
+        // Generate waveform using FFmpeg showwavespic filter
+        const args = [
+            '-i', filePath,
+            '-filter_complex', `showwavespic=s=${size}x${size}:colors=8b5cf6`,
+            '-frames:v', '1',
+            '-y',
+            tmpPath
+        ]
+
+        await new Promise<void>((resolve, reject) => {
+            const child = spawn(ffmpegPath, args)
+            child.on('close', (code) => {
+                if (code === 0) resolve()
+                else reject(new Error(`FFmpeg exited with code ${code}`))
+            })
+            child.on('error', reject)
+        })
+
+        // Read the waveform image and convert to base64
+        const buffer = await fs.readFile(tmpPath)
+        await fs.unlink(tmpPath).catch(() => {}) // Clean up temp file
+
+        return `data:image/png;base64,${buffer.toString('base64')}`
+    } catch (err) {
+        console.error(`[audio-converter] Failed to generate waveform for ${filePath}:`, err)
+        return null
+    }
+}
+
+/**
+ * Get metadata for an audio file (duration, codec, bitrate).
+ */
+export async function getAudioMetadata(
+    filePath: string
+): Promise<{ duration?: number; codec?: string; bitrate?: number } | null> {
+    try {
+        const mediaInfo = await probeMediaFile(filePath)
+        
+        if (!mediaInfo) {
+            return null
+        }
+
+        return {
+            duration: mediaInfo.duration,
+            codec: mediaInfo.audioCodec,
+            bitrate: mediaInfo.bitrate
+        }
+    } catch (err) {
+        console.error(`[audio-converter] Failed to get metadata for ${filePath}:`, err)
+        return null
     }
 }

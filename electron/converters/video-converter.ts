@@ -223,3 +223,29 @@ export async function generateThumbnail(
         return null
     }
 }
+
+/**
+ * Get metadata for a video file (width, height, duration, codec).
+ */
+export async function getVideoMetadata(
+    filePath: string
+): Promise<{ width?: number; height?: number; duration?: number; codec?: string; bitrate?: number } | null> {
+    try {
+        const mediaInfo = await probeMediaFile(filePath)
+        
+        if (!mediaInfo) {
+            return null
+        }
+
+        return {
+            width: mediaInfo.width,
+            height: mediaInfo.height,
+            duration: mediaInfo.duration,
+            codec: mediaInfo.videoCodec,
+            bitrate: mediaInfo.bitrate
+        }
+    } catch (err) {
+        console.error(`[video-converter] Failed to get metadata for ${filePath}:`, err)
+        return null
+    }
+}

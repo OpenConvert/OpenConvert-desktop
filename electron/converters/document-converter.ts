@@ -1,6 +1,7 @@
 import path from 'path'
 import fs from 'fs/promises'
 import { executePandoc, canPandocConvert } from './utils/pandoc-wrapper'
+import pdfThumbnail from 'pdf-thumbnail'
 
 export interface DocumentConvertOptions {
     sourcePath: string
@@ -180,5 +181,65 @@ export async function convertDocument(options: DocumentConvertOptions): Promise<
             error: errorMessage,
             durationMs: Date.now() - startTime,
         }
+    }
+}
+
+/**
+ * Generate a thumbnail for a document file (primarily PDF).
+ * Returns a base64 data URL.
+ */
+export async function generateThumbnail(
+    filePath: string,
+    size: number = 128
+): Promise<string | null> {
+    try {
+        const ext = getExtension(filePath)
+        
+        // Only PDF files are supported for thumbnail generation
+        if (ext !== 'pdf') {
+            return null
+        }
+
+        const buffer = await pdfThumbnail(filePath, {
+            compress: {
+                type: 'JPEG',
+                quality: 80
+            },
+            size: size,
+            page: 0 // First page
+        })
+
+        return `data:image/jpeg;base64,${buffer.toString('base64')}`
+    } catch (err) {
+        console.error(`[document-converter] Failed to generate thumbnail for ${filePath}:`, err)
+        return null
+    }
+}
+
+/**
+ * Get metadata for a document file (page count for PDF).
+ */
+export async function getDocumentMetadata(
+    filePath: string
+): Promise<{ pageCount?: number } | null> {
+    try {
+        const ext = getExtension(filePath)
+        
+        // Only PDF files support metadata extraction
+        if (ext !== 'pdf') {
+            return null
+        }
+
+        const dataBuffer = await fs.readFile(filePath)
+        // Use dynamic require for pdf-parse due to ESM/CJS compatibility
+        const parse = require('pdf-parse')
+        const data = await parse(dataBuffer)
+
+        return {
+            pageCount: data.numpages
+        }
+    } catch (err) {
+        console.error(`[document-converter] Failed to get metadata for ${filePath}:`, err)
+        return null
     }
 }

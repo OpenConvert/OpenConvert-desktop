@@ -1,9 +1,9 @@
-import { useState, useEffect, memo } from 'react'
-import { X, Image, FileText, Film, Music, ArrowRight, Sparkles, RotateCcw, Tags } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, ArrowRight, Sparkles, RotateCcw, Tags } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getFileCategory, getTargetFormats, getCategoryColor, getCategoryBgColor, formatFileSize } from '@/lib/formats'
+import { getFileCategory, getTargetFormats, formatFileSize } from '@/lib/formats'
 import { getFormatRecommendations, estimateOutputSize, getRecommendationReason } from '@/lib/format-recommendations'
-import type { FileCategory } from '@/lib/formats'
+import { FileThumbnail } from './FileThumbnail'
 
 export interface ConvertFile {
     id: string
@@ -30,6 +30,7 @@ interface FileListProps {
     onTargetFormatChange: (id: string, format: string) => void
     onReconvert?: (id: string) => void // Re-convert a completed file
     onEditMetadata?: (id: string) => void // Edit file metadata
+    onRenameFile?: (id: string, newName: string) => void // Rename file
 }
 
 /** Format seconds into human-readable time */
@@ -45,61 +46,122 @@ function formatTimeRemaining(seconds: number): string {
     return `${hours}h ${mins}m`
 }
 
-function CategoryIcon({ category }: { category: FileCategory | null }) {
-    const iconClass = `w-4 h-4 ${category ? getCategoryColor(category) : 'text-zinc-500'}`
-    switch (category) {
-        case 'image': return <Image className={iconClass} />
-        case 'document': return <FileText className={iconClass} />
-        case 'video': return <Film className={iconClass} />
-        case 'audio': return <Music className={iconClass} />
-        default: return <FileText className={iconClass} />
-    }
+
+
+/** Helper to format duration in seconds to MM:SS */
+function formatDuration(seconds: number): string {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-/** Lazy-loaded image thumbnail component */
-const ImageThumbnail = memo(function ImageThumbnail({ filePath }: { filePath: string }) {
-    const [thumbnail, setThumbnail] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+/** Component to display file metadata */
+function FileMetadataDisplay({ filePath }: { filePath: string }) {
+    const [metadata, setMetadata] = useState<FileMetadataInfo | null>(null)
 
     useEffect(() => {
         let cancelled = false
-        // Thumbnail generation is starting, so we can unconditionally set loading state to true
-        setIsLoading(true) // eslint-disable-line react-hooks/set-state-in-effect
 
-        window.electronAPI.generateThumbnail(filePath).then((dataUrl) => {
-            if (!cancelled) {
-                setThumbnail(dataUrl)
-                setIsLoading(false)
-            }
-        }).catch(() => {
-            if (!cancelled) setIsLoading(false)
-        })
+        window.electronAPI.getFileMetadata(filePath)
+            .then((data) => {
+                if (!cancelled && data) {
+                    setMetadata(data)
+                }
+            })
+            .catch(() => {
+                // Silently fail
+            })
 
         return () => { cancelled = true }
-
     }, [filePath])
 
-    if (isLoading) {
-        return (
-            <div className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/30 animate-pulse" />
-        )
+    if (!metadata) return null
+
+    const parts: string[] = []
+
+    // Show resolution for images and videos
+    if (metadata.width && metadata.height) {
+        parts.push(`${metadata.width}×${metadata.height}`)
     }
 
-    if (!thumbnail) {
-        return null // Will fall back to category icon
+    // Show duration for videos and audio
+    if (metadata.duration) {
+        parts.push(formatDuration(metadata.duration))
     }
+
+    // Show page count for PDFs
+    if (metadata.pageCount) {
+        parts.push(`${metadata.pageCount} ${metadata.pageCount === 1 ? 'page' : 'pages'}`)
+    }
+
+    if (parts.length === 0) return null
 
     return (
-        <img
-            src={thumbnail}
-            alt="Preview"
-            className="w-10 h-10 rounded-lg object-cover border border-zinc-700/30"
-            loading="lazy"
-        />
+        <>
+            {parts.map((part, idx) => (
+                <span key={idx}>
+                    <span className="text-xs text-zinc-700">•</span>
+                    <span className="text-xs text-zinc-600">{part}</span>
+                </span>
+            ))}
+        </>
     )
-})
+}
 
-export default function FileList({ files, onRemoveFile, onTargetFormatChange, onReconvert, onEditMetadata }: FileListProps) {
+export default function FileList({ files, onRemoveFile, onTargetFormatChange, onReconvert, onEditMetadata, onRenameFile }: FileListProps) {
+    const [editingFileId, setEditingFileId] = useState<string | null>(null)
+    const [editingName, setEditingName] = useState('')
+
+    const handleRenameStart = (file: ConvertFile) => {
+        // Don't allow rename while converting
+        if (file.status === 'converting') return
+        
+        setEditingFileId(file.id)
+        // Set name without extension
+        const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.'))
+        setEditingName(nameWithoutExt || file.name)
+    }
+
+    const handleRenameSave = (fileId: string) => {
+        const file = files.find(f => f.id === fileId)
+        if (!file || !onRenameFile) {
+            setEditingFileId(null)
+            return
+        }
+        
+        // Trim and validate
+        const trimmedName = editingName.trim()
+        if (!trimmedName || trimmedName === file.name.substring(0, file.name.lastIndexOf('.'))) {
+            setEditingFileId(null)
+            return
+        }
+        
+        // Check if name exists in current file list
+        const newName = `${trimmedName}.${file.ext}`
+        const exists = files.some(f => 
+            f.id !== fileId && f.name.toLowerCase() === newName.toLowerCase()
+        )
+        
+        if (exists) {
+            // Auto-append number
+            let counter = 1
+            let finalName = newName
+            while (files.some(f => f.id !== fileId && f.name.toLowerCase() === finalName.toLowerCase())) {
+                finalName = `${trimmedName}-${counter}.${file.ext}`
+                counter++
+            }
+            onRenameFile(fileId, finalName)
+        } else {
+            onRenameFile(fileId, newName)
+        }
+        
+        setEditingFileId(null)
+    }
+
+    const handleRenameCancel = () => {
+        setEditingFileId(null)
+    }
+
     if (files.length === 0) return null
 
     return (
@@ -107,7 +169,6 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange, on
             {files.map((file) => {
                 const category = getFileCategory(file.ext)
                 const targets = getTargetFormats(file.ext)
-                const isImage = category === 'image'
 
                 return (
                     <div
@@ -120,27 +181,45 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange, on
                                     'border-zinc-800'
                             }`}
                     >
-                        {/* File icon / Image preview */}
-                        {isImage ? (
-                            <div className="flex-shrink-0">
-                                <ImageThumbnail filePath={file.path} />
-                            </div>
-                        ) : (
-                            <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center border ${category ? getCategoryBgColor(category) : 'bg-zinc-800/50 border-zinc-700/50'
-                                }`}>
-                                <CategoryIcon category={category} />
-                            </div>
-                        )}
+                        {/* Universal thumbnail for all file types */}
+                        <FileThumbnail filePath={file.path} category={category} />
 
                         {/* File info */}
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-zinc-200 truncate">
-                                {file.name}
-                            </p>
+                            {editingFileId === file.id ? (
+                                <input
+                                    type="text"
+                                    value={editingName}
+                                    onChange={(e) => setEditingName(e.target.value)}
+                                    onBlur={() => handleRenameSave(file.id)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleRenameSave(file.id)
+                                        if (e.key === 'Escape') handleRenameCancel()
+                                    }}
+                                    className="text-sm font-medium bg-zinc-800 border border-violet-500 rounded px-2 py-0.5 text-white outline-none focus:ring-2 focus:ring-violet-500/50 w-full"
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            ) : (
+                                <p 
+                                    className={`text-sm font-medium text-zinc-200 truncate ${
+                                        file.status !== 'converting' && onRenameFile 
+                                            ? 'cursor-text hover:text-white transition-colors' 
+                                            : ''
+                                    }`}
+                                    onClick={() => onRenameFile && handleRenameStart(file)}
+                                    title={onRenameFile && file.status !== 'converting' ? 'Click to rename' : file.name}
+                                >
+                                    {file.name}
+                                </p>
+                            )}
                             <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-xs text-zinc-600 uppercase font-mono">{file.ext}</span>
                                 <span className="text-xs text-zinc-700">•</span>
                                 <span className="text-xs text-zinc-600">{formatFileSize(file.size)}</span>
+                                
+                                {/* Show metadata (resolution, duration, page count) */}
+                                <FileMetadataDisplay filePath={file.path} />
                                 
                                 {/* Show current operation and ETA while converting */}
                                 {file.status === 'converting' && (

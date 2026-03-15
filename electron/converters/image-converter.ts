@@ -287,3 +287,23 @@ export async function generateThumbnail(
         return null
     }
 }
+
+/**
+ * Get metadata for an image file (width, height, format).
+ */
+export async function getImageMetadata(
+    filePath: string
+): Promise<{ width?: number; height?: number; format?: string } | null> {
+    try {
+        const metadata = await sharp(filePath).metadata()
+        
+        return {
+            width: metadata.width,
+            height: metadata.height,
+            format: metadata.format
+        }
+    } catch (err) {
+        console.error(`[image-converter] Failed to get metadata for ${filePath}:`, err)
+        return null
+    }
+}

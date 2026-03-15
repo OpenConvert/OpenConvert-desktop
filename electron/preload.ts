@@ -31,8 +31,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('conversion-progress', handler)
     },
 
-    // Thumbnails
+    // Thumbnails & Metadata
     generateThumbnail: (filePath: string) => ipcRenderer.invoke('generate-thumbnail', filePath),
+    getFileMetadata: (filePath: string) => ipcRenderer.invoke('get-file-metadata', filePath),
 
     // History
     getHistory: (options: HistoryQueryOptions) => ipcRenderer.invoke('get-history', options),
