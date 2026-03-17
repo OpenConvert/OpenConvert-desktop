@@ -490,18 +490,18 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
             {/* Right side: File count + Clear all */}
             <div className="flex items-center gap-3">
               {errorCount > 0 && (
-                <Badge variant="secondary" className="text-xs bg-red-500/10 text-red-400 border-red-500/20 px-2.5 py-0.5">
+                <Badge variant="secondary" className="text-sm bg-red-500/10 text-red-400 border-red-500/20 px-3 py-1.5">
                   {errorCount} failed
                 </Badge>
               )}
-              <Badge variant="secondary" className="text-xs bg-zinc-800 text-zinc-400 border-zinc-700 px-2.5 py-0.5">
+              <Badge variant="secondary" className="text-sm bg-zinc-800 text-zinc-400 border-zinc-700 px-3 py-1.5">
                 {files.length} {files.length === 1 ? 'file' : 'files'}
               </Badge>
               <button
                 onClick={handleClearAll}
-                className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-red-400 transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
               >
-                <Trash2 size={12} />
+                <Trash2 size={16} />
                 Clear all
               </button>
             </div>

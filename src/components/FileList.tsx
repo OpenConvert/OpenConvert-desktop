@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, ArrowRight, Sparkles, RotateCcw, Tags } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getFileCategory, getTargetFormats, formatFileSize } from '@/lib/formats'
-import { getFormatRecommendations, estimateOutputSize, getRecommendationReason } from '@/lib/format-recommendations'
+import { getFormatRecommendations, estimateOutputSize } from '@/lib/format-recommendations'
 import { FileThumbnail } from './FileThumbnail'
 
 export interface ConvertFile {
@@ -253,32 +253,32 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange, on
                         {/* Conversion arrow + target format */}
                         <div className="flex flex-col gap-1 flex-shrink-0">
                             <div className="flex items-center gap-2">
-                                <ArrowRight size={14} className="text-zinc-600" />
+                                <ArrowRight size={16} className="text-zinc-600" />
                                 <Select
                                     value={file.targetFormat}
                                     onValueChange={(val) => onTargetFormatChange(file.id, val)}
                                     disabled={file.status === 'converting' || file.status === 'done'}
                                 >
-                                    <SelectTrigger className="w-[90px] h-8 text-xs bg-zinc-800/50 border-zinc-700/50 hover:border-zinc-600 focus:ring-violet-500/20">
+                                    <SelectTrigger className="w-[100px] h-9 text-sm bg-zinc-800/50 border-zinc-700/50 hover:border-zinc-600 focus:ring-violet-500/20">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent className="bg-zinc-900 border-zinc-700">
                                         {/* Recommendations section */}
                                         {file.status === 'pending' && getFormatRecommendations(file.ext).length > 0 && (
                                             <>
-                                                <div className="px-2 py-1.5 text-xs text-zinc-500 flex items-center gap-1">
-                                                    <Sparkles size={10} />
+                                                <div className="px-2 py-1.5 text-sm text-zinc-500 flex items-center gap-1.5">
+                                                    <Sparkles size={12} />
                                                     <span>Recommended</span>
                                                 </div>
                                                 {getFormatRecommendations(file.ext).map((rec) => (
                                                     <SelectItem 
                                                         key={rec.format} 
                                                         value={rec.format} 
-                                                        className="text-xs uppercase font-mono bg-violet-500/5"
+                                                        className="text-sm uppercase font-mono bg-violet-500/5"
                                                     >
-                                                        <div className="flex items-center gap-1.5">
+                                                        <div className="flex items-center gap-2">
                                                             <span>{rec.format.toUpperCase()}</span>
-                                                            <Sparkles size={10} className="text-violet-400" />
+                                                            <Sparkles size={12} className="text-violet-400" />
                                                         </div>
                                                     </SelectItem>
                                                 ))}
@@ -290,7 +290,7 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange, on
                                             const isRecommended = getFormatRecommendations(file.ext).some(r => r.format === fmt)
                                             if (isRecommended && file.status === 'pending') return null // Already shown above
                                             return (
-                                                <SelectItem key={fmt} value={fmt} className="text-xs uppercase font-mono">
+                                                <SelectItem key={fmt} value={fmt} className="text-sm uppercase font-mono">
                                                     {fmt.toUpperCase()}
                                                 </SelectItem>
                                             )
@@ -300,40 +300,39 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange, on
                             </div>
                             {/* Estimated size */}
                             {file.status === 'pending' && file.quality !== undefined && (
-                                <div className="text-xs text-zinc-600 flex items-center gap-1 ml-5">
+                                <div className="text-sm text-zinc-500 flex items-center gap-1 ml-6">
                                     <span>~{formatFileSize(estimateOutputSize(file.size, file.ext, file.targetFormat, file.quality))}</span>
-                                    <span className="text-zinc-700" title={getRecommendationReason(file.targetFormat)}>•</span>
                                 </div>
                             )}
                         </div>
 
                         {/* Status indicator */}
                         {file.status === 'converting' && (
-                            <div className="flex-shrink-0 w-5 h-5">
-                                <div className="w-5 h-5 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
+                            <div className="flex-shrink-0 w-6 h-6">
+                                <div className="w-6 h-6 border-2 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
                             </div>
                         )}
                         {file.status === 'done' && (
-                            <div className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                                <span className="text-emerald-400 text-xs">&#x2713;</span>
+                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                <span className="text-emerald-400 text-sm font-semibold">&#x2713;</span>
                             </div>
                         )}
                         {file.status === 'error' && (
-                            <div className="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 flex items-center justify-center">
-                                <span className="text-red-400 text-xs">!</span>
+                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center">
+                                <span className="text-red-400 text-sm font-semibold">!</span>
                             </div>
                         )}
 
                         {/* Action buttons */}
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                             {/* Edit metadata button for pending files */}
                             {file.status === 'pending' && onEditMetadata && (category === 'video' || category === 'audio' || category === 'image') && (
                                 <button
                                     onClick={() => onEditMetadata(file.id)}
-                                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md flex items-center justify-center text-zinc-600 hover:text-violet-400 hover:bg-violet-500/10 transition-all duration-150"
+                                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-violet-400 hover:bg-violet-500/10 transition-all duration-150 border border-transparent hover:border-violet-500/20"
                                     title="Edit metadata"
                                 >
-                                    <Tags size={12} />
+                                    <Tags size={16} />
                                 </button>
                             )}
                             
@@ -341,10 +340,10 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange, on
                             {file.status === 'done' && onReconvert && (
                                 <button
                                     onClick={() => onReconvert(file.id)}
-                                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md flex items-center justify-center text-zinc-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all duration-150"
+                                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all duration-150 border border-transparent hover:border-emerald-500/20"
                                     title="Convert again"
                                 >
-                                    <RotateCcw size={12} />
+                                    <RotateCcw size={16} />
                                 </button>
                             )}
                             
@@ -352,9 +351,10 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange, on
                             {(file.status === 'pending' || file.status === 'error') && (
                                 <button
                                     onClick={() => onRemoveFile(file.id)}
-                                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md flex items-center justify-center text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-all duration-150"
+                                    className="flex-shrink-0 opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150 border border-transparent hover:border-red-500/20"
+                                    title="Remove file"
                                 >
-                                    <X size={12} />
+                                    <X size={16} />
                                 </button>
                             )}
                         </div>

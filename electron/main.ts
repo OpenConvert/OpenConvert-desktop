@@ -354,6 +354,11 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
         const category = getConverterCategory(file.sourceExt)
         const startTime = Date.now()
 
+        // Determine output directory: if "same as source", use the source file's directory
+        const outputDir = targetDirectory === '__same_as_source__' 
+            ? path.dirname(file.sourcePath)
+            : targetDirectory
+
         // Send progress: starting
         mainWindow?.webContents.send('conversion-progress', {
             fileId: file.fileId,
@@ -377,7 +382,7 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
 
             result = await convertImage({
                 sourcePath: file.sourcePath,
-                outputDir: targetDirectory,
+                outputDir: outputDir,
                 targetFormat: file.targetFormat,
                 quality,
                 overwriteBehavior,
@@ -396,7 +401,7 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
             // Video conversion with progress tracking
             result = await convertVideo({
                 sourcePath: file.sourcePath,
-                outputDir: targetDirectory,
+                outputDir: outputDir,
                 targetFormat: file.targetFormat,
                 quality,
                 overwriteBehavior,
@@ -419,7 +424,7 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
             // Audio conversion with progress tracking
             result = await convertAudio({
                 sourcePath: file.sourcePath,
-                outputDir: targetDirectory,
+                outputDir: outputDir,
                 targetFormat: file.targetFormat,
                 quality,
                 overwriteBehavior,
@@ -450,7 +455,7 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
 
             result = await convertDocument({
                 sourcePath: file.sourcePath,
-                outputDir: targetDirectory,
+                outputDir: outputDir,
                 targetFormat: file.targetFormat,
                 quality,
                 overwriteBehavior,
