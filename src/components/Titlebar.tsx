@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Minus, Square, Copy, X, PanelLeft, HelpCircle, BookOpen, Download, MessageSquare, Sparkles } from 'lucide-react'
+import { Minus, Square, Copy, X, PanelLeft, HelpCircle, BookOpen, Download, LifeBuoy } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
     DropdownMenu,
@@ -8,6 +8,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { AlertDialog } from '@/components/ui/alert-dialog'
+import { APP_CONFIG } from '@/config/app'
+import { useTour } from '@/contexts/TourContext'
 
 interface TitlebarProps {
     isSidebarExpanded: boolean
@@ -16,6 +19,15 @@ interface TitlebarProps {
 
 export default function Titlebar({ isSidebarExpanded, onToggleSidebar }: TitlebarProps) {
     const [isMaximized, setIsMaximized] = useState(false)
+    const [appVersion, setAppVersion] = useState<string>('')
+    const [updateDialog, setUpdateDialog] = useState<{ 
+        open: boolean
+        title: string
+        description: string
+        confirmText?: string
+        onConfirm?: () => void
+    } | null>(null)
+    const { startTour } = useTour()
 
     useEffect(() => {
         const cleanup = window.electronAPI.onMaximizeChange((maximized) => {
@@ -23,6 +35,63 @@ export default function Titlebar({ isSidebarExpanded, onToggleSidebar }: Titleba
         })
         return cleanup
     }, [])
+
+    useEffect(() => {
+        window.electronAPI.getAppVersion().then(setAppVersion).catch(() => setAppVersion('Unknown'))
+    }, [])
+
+    const handleCheckUpdates = async () => {
+        try {
+            const currentVersion = appVersion
+            
+            // Try to fetch latest version from configured repository
+            try {
+                const response = await fetch(APP_CONFIG.links.releasesApi)
+                if (response.ok) {
+                    const data = await response.json()
+                    const latestVersion = data.tag_name?.replace('v', '')
+                    
+                    if (latestVersion && latestVersion !== currentVersion) {
+                        setUpdateDialog({
+                            open: true,
+                            title: 'Update Available',
+                            description: `A new version (${latestVersion}) is available! You are currently running version ${currentVersion}.`,
+                            confirmText: 'View Releases',
+                            onConfirm: () => {
+                                window.electronAPI.openExternal(APP_CONFIG.links.releasesPage)
+                            },
+                        })
+                        return
+                    }
+                }
+            } catch (fetchError) {
+                console.warn('Could not fetch latest version:', fetchError)
+            }
+            
+            // If we couldn't check or there's no update, show current version
+            setUpdateDialog({
+                open: true,
+                title: 'You\'re up to date!',
+                description: `You are running the latest version (${currentVersion}).`,
+            })
+        } catch (error) {
+            console.error('Failed to check for updates:', error)
+            setUpdateDialog({
+                open: true,
+                title: 'Update Check Failed',
+                description: 'Could not check for updates. Please try again later.',
+            })
+        }
+    }
+
+    const handleOpenSupport = async () => {
+        await window.electronAPI.openExternal(APP_CONFIG.links.support)
+    }
+
+    const handleAppGuideTour = () => {
+        // Start the welcome tour immediately
+        startTour('welcome')
+    }
 
     return (
         <div className="flex justify-between items-center bg-[#0a0a0b] h-10 w-full select-none text-white border-b border-white/5 flex-shrink-0"
@@ -95,14 +164,14 @@ export default function Titlebar({ isSidebarExpanded, onToggleSidebar }: Titleba
                     >
                         <DropdownMenuItem
                             className="flex items-center gap-2 cursor-pointer hover:bg-zinc-800 focus:bg-zinc-800"
-                            onClick={() => console.log('App Guide Tours')}
+                            onClick={handleAppGuideTour}
                         >
                             <BookOpen size={14} />
                             <span className="text-sm">App Guide Tours</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             className="flex items-center gap-2 cursor-pointer hover:bg-zinc-800 focus:bg-zinc-800"
-                            onClick={() => console.log('Check for Updates')}
+                            onClick={handleCheckUpdates}
                         >
                             <Download size={14} />
                             <span className="text-sm">Check for Updates</span>
@@ -110,17 +179,10 @@ export default function Titlebar({ isSidebarExpanded, onToggleSidebar }: Titleba
                         <DropdownMenuSeparator className="bg-zinc-800" />
                         <DropdownMenuItem
                             className="flex items-center gap-2 cursor-pointer hover:bg-zinc-800 focus:bg-zinc-800"
-                            onClick={() => console.log('Support')}
+                            onClick={handleOpenSupport}
                         >
-                            <Sparkles size={14} />
-                            <span className="text-sm">Support</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className="flex items-center gap-2 cursor-pointer hover:bg-zinc-800 focus:bg-zinc-800"
-                            onClick={() => console.log('Feedback')}
-                        >
-                            <MessageSquare size={14} />
-                            <span className="text-sm">Feedback</span>
+                            <LifeBuoy size={14} />
+                            <span className="text-sm">Help & Support</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -175,6 +237,18 @@ export default function Titlebar({ isSidebarExpanded, onToggleSidebar }: Titleba
                     </Tooltip>
                 </TooltipProvider>
             </div>
+
+            {/* Update/Info Dialog */}
+            {updateDialog && (
+                <AlertDialog
+                    open={updateDialog.open}
+                    onOpenChange={(open) => !open && setUpdateDialog(null)}
+                    title={updateDialog.title}
+                    description={updateDialog.description}
+                    confirmText={updateDialog.confirmText}
+                    onConfirm={updateDialog.onConfirm}
+                />
+            )}
         </div>
     )
 }

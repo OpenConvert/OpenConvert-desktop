@@ -55,6 +55,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
     getAppPath: (name: string) => ipcRenderer.invoke('get-app-path', name),
     openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
+
+    // Post-conversion actions
+    executePostConversionAction: (action: string, data?: { outputPath?: string }) => 
+        ipcRenderer.invoke('execute-post-conversion-action', action, data),
+
+    // Demo support
+    getDemoOutputPath: () => ipcRenderer.invoke('get-demo-output-path'),
 })
 
 // Type definitions for the preload script

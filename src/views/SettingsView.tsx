@@ -22,8 +22,9 @@ import {
   QUALITY_LABELS,
   OVERWRITE_LABELS,
   THEME_LABELS,
+  POST_CONVERSION_ACTION_LABELS,
 } from '@/lib/settings'
-import type { QualityPreset, OverwriteBehavior, ThemeOption } from '@/lib/settings'
+import type { QualityPreset, OverwriteBehavior, ThemeOption, PostConversionAction } from '@/lib/settings'
 
 type SettingsSection = 'general' | 'conversion' | 'appearance' | 'about'
 
@@ -319,6 +320,31 @@ export default function SettingsView() {
                   {settings.maxFileSizeMB}
                 </span>
               </div>
+            </SettingRow>
+
+            <Separator className="bg-zinc-800/30" />
+
+            <SettingRow
+              label="When conversion finishes"
+              description="Action to perform after all files are converted"
+            >
+              <Select
+                value={settings.postConversionAction}
+                onValueChange={(val) => updateSetting('postConversionAction', val as PostConversionAction)}
+              >
+                <SelectTrigger className="w-[180px] h-8 text-xs bg-zinc-900 border-zinc-800">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-700">
+                  {(Object.entries(POST_CONVERSION_ACTION_LABELS) as [PostConversionAction, { label: string; description: string }][]).map(
+                    ([key, { label, description }]) => (
+                      <SelectItem key={key} value={key} className="text-xs">
+                        {label} - {description}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
             </SettingRow>
 
             <Separator className="bg-zinc-800/30" />

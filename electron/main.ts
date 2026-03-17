@@ -1,7 +1,11 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, Notification } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs/promises'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+
+const execAsync = promisify(exec)
 import {
     initDatabase,
     closeDatabase,
@@ -38,6 +42,7 @@ import {
     getDocumentMetadata,
 } from './converters'
 import { getFileDialogFilters, isFormatSupported } from './config/formats'
+import { getExamplesPath, getDemoOutputPath } from './utils/paths'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isDev = !!process.env.VITE_DEV_SERVER_URL
@@ -162,7 +167,21 @@ ipcMain.on('window-close', () => mainWindow?.close())
 ipcMain.handle('open-file-dialog', async () => {
     if (!mainWindow) return []
 
+    // Try to open examples folder by default, fallback to home directory
+    const examplesPath = getExamplesPath()
+    let defaultPath = app.getPath('home')
+    
+    try {
+        const examplesExists = await fs.stat(examplesPath).then(() => true).catch(() => false)
+        if (examplesExists) {
+            defaultPath = examplesPath
+        }
+    } catch (error) {
+        console.log('Examples folder not found, using home directory')
+    }
+
     const result = await dialog.showOpenDialog(mainWindow, {
+        defaultPath: defaultPath,
         properties: ['openFile', 'multiSelections'],
         filters: getFileDialogFilters(),
     })
@@ -649,4 +668,68 @@ ipcMain.handle('get-app-path', async (_event, name: string) => {
 ipcMain.handle('open-external', async (_event, url: string) => {
     await shell.openExternal(url)
     return true
+})
+
+// ========================================
+// Post-Conversion Actions
+// ========================================
+
+ipcMain.handle('execute-post-conversion-action', async (_event, action: string, data?: { outputPath?: string }) => {
+    try {
+        switch (action) {
+            case 'notification': {
+                // Send desktop notification
+                const notification = new Notification({
+                    title: 'Conversion Complete',
+                    body: 'All files have been successfully converted!',
+                    icon: path.join(__dirname, '../logo.ico'),
+                })
+                notification.show()
+                break
+            }
+
+            case 'open-folder': {
+                // Open the output folder
+                if (data?.outputPath) {
+                    shell.showItemInFolder(data.outputPath)
+                }
+                break
+            }
+
+            case 'shutdown': {
+                // Shutdown the computer
+                const platform = process.platform
+                try {
+                    if (platform === 'win32') {
+                        await execAsync('shutdown /s /t 5')
+                    } else if (platform === 'darwin') {
+                        await execAsync('sudo shutdown -h +1')
+                    } else if (platform === 'linux') {
+                        await execAsync('shutdown -h +1')
+                    }
+                } catch (error) {
+                    console.error('Failed to shutdown:', error)
+                    throw new Error('Failed to initiate shutdown')
+                }
+                break
+            }
+
+            case 'none':
+            default:
+                // Do nothing
+                break
+        }
+        return { success: true }
+    } catch (error) {
+        console.error('Post-conversion action failed:', error)
+        return { success: false, error: String(error) }
+    }
+})
+
+// ========================================
+// Demo Support
+// ========================================
+
+ipcMain.handle('get-demo-output-path', async () => {
+    return getDemoOutputPath()
 })

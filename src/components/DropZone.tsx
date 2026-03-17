@@ -114,6 +114,7 @@ export default function DropZone({ onFilesAdded }: DropZoneProps) {
             </div>
 
             <button
+                data-tour="browse-files"
                 onClick={(e) => {
                     e.stopPropagation()
                     handleBrowse()

@@ -27,6 +27,7 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   return (
     <div
+      data-tour="sidebar"
       className={`flex flex-col justify-between flex-shrink-0 bg-[#0f0f10] border-r border-white/5 transition-all duration-300 overflow-hidden ${isSidebarExpanded ? 'w-64' : 'w-16'
         }`}
     >

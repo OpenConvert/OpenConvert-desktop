@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { SettingsProvider } from '@/contexts/SettingsContext'
+import { TourProvider, useTour } from '@/contexts/TourContext'
 import Titlebar from '@/components/Titlebar'
 import AppSidebar from '@/components/Sidebar'
+import AppTour from '@/components/AppTour'
+import WelcomeDialog from '@/components/WelcomeDialog'
 import type { Tab } from '@/components/Sidebar'
 import ConvertView from '@/views/ConvertView'
 import PluginsView from '@/views/PluginsView'
@@ -39,13 +42,23 @@ function renderView(
   }
 }
 
-function App() {
+function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>('convert')
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true)
+  const { activeTour, currentStep, nextStep } = useTour()
 
   // Lifted state from ConvertView
   const [files, setFiles] = useState<ConvertFile[]>([])
   const [outputDir, setOutputDir] = useState<string | null>(null)
+
+  // Wrapped setActiveTab to detect tour progression
+  const handleTabChange = (tab: Tab) => {
+    // If tour is active and waiting for history tab (step 5), advance to completion
+    if (activeTour === 'welcome' && currentStep === 5 && tab === 'history') {
+      setTimeout(() => nextStep(), 500)
+    }
+    setActiveTab(tab)
+  }
 
   // Global handlers
   useEffect(() => {
@@ -61,12 +74,12 @@ function App() {
         switch (e.key) {
           case ',':
             e.preventDefault()
-            setActiveTab('settings')
+            handleTabChange('settings')
             break
           case 'h':
             if (e.shiftKey) {
               e.preventDefault()
-              setActiveTab('history')
+              handleTabChange('history')
             }
             break
         }
@@ -93,30 +106,44 @@ function App() {
       document.removeEventListener('dragover', preventNav)
       document.removeEventListener('drop', preventNav)
     }
-  }, [])
+  }, [activeTour, currentStep, nextStep])
 
   return (
+    <div className="flex flex-col h-screen bg-[#0a0a0b] text-white overflow-hidden font-sans">
+      <Titlebar
+        isSidebarExpanded={isSidebarExpanded}
+        onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}
+      />
+
+      <div className="flex-1 flex overflow-hidden">
+        <AppSidebar
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          isSidebarExpanded={isSidebarExpanded}
+        />
+
+        <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+          {renderView(activeTab, files, setFiles, outputDir, setOutputDir)}
+        </main>
+      </div>
+
+      {/* Guided Tours */}
+      <AppTour />
+      
+      {/* First Launch Welcome Dialog */}
+      <WelcomeDialog />
+    </div>
+  )
+}
+
+function App() {
+  return (
     <SettingsProvider>
-      <TooltipProvider>
-        <div className="flex flex-col h-screen bg-[#0a0a0b] text-white overflow-hidden font-sans">
-          <Titlebar
-            isSidebarExpanded={isSidebarExpanded}
-            onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}
-          />
-
-          <div className="flex-1 flex overflow-hidden">
-            <AppSidebar
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              isSidebarExpanded={isSidebarExpanded}
-            />
-
-            <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
-              {renderView(activeTab, files, setFiles, outputDir, setOutputDir)}
-            </main>
-          </div>
-        </div>
-      </TooltipProvider>
+      <TourProvider>
+        <TooltipProvider>
+          <AppContent />
+        </TooltipProvider>
+      </TourProvider>
     </SettingsProvider>
   )
 }

@@ -18,7 +18,14 @@
     "productName": "OpenConvert",
     "files": [
       "dist",
-      "dist-electron"
+      "dist-electron",
+      "examples/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "examples",
+        "to": "examples"
+      }
     ],
     "asarUnpack": [
       "**/*.node",
@@ -29,9 +36,7 @@
       "target": [
         "AppImage",
         "snap",
-        "tar.gz",
-        "zip",
-        "7z"
+        "tar.gz"
       ],
       "category": "Utility"
     }
@@ -49,6 +54,7 @@
     "radix-ui": "^1.4.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-joyride": "^2.9.3",
     "shadcn": "^4.0.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",

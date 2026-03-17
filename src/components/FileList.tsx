@@ -164,11 +164,15 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange, on
 
     if (files.length === 0) return null
 
+    // Find the first pending file for tour targeting
+    const firstPendingFile = files.find(f => f.status === 'pending')
+
     return (
         <div className="flex flex-col gap-2 px-4 py-2">
             {files.map((file) => {
                 const category = getFileCategory(file.ext)
                 const targets = getTargetFormats(file.ext)
+                const isFirstPending = firstPendingFile?.id === file.id
 
                 return (
                     <div
@@ -259,7 +263,9 @@ export default function FileList({ files, onRemoveFile, onTargetFormatChange, on
                                     onValueChange={(val) => onTargetFormatChange(file.id, val)}
                                     disabled={file.status === 'converting' || file.status === 'done'}
                                 >
-                                    <SelectTrigger className="w-[100px] h-9 text-sm bg-zinc-800/50 border-zinc-700/50 hover:border-zinc-600 focus:ring-violet-500/20">
+                                    <SelectTrigger 
+                                        data-tour={isFirstPending ? "format-dropdown" : undefined}
+                                        className="w-[100px] h-9 text-sm bg-zinc-800/50 border-zinc-700/50 hover:border-zinc-600 focus:ring-violet-500/20">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent className="bg-zinc-900 border-zinc-700">

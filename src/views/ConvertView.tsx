@@ -1,4 +1,30 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+
+// Helper function to wait for DOM element to appear
+const waitForElement = (selector: string, timeout = 3000): Promise<Element | null> => {
+  return new Promise((resolve) => {
+    if (document.querySelector(selector)) {
+      return resolve(document.querySelector(selector))
+    }
+
+    const observer = new MutationObserver(() => {
+      if (document.querySelector(selector)) {
+        observer.disconnect()
+        resolve(document.querySelector(selector))
+      }
+    })
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    })
+
+    setTimeout(() => {
+      observer.disconnect()
+      resolve(null)
+    }, timeout)
+  })
+}
 import { FolderOutput, Zap, Settings2, Image, FileText, Film, Music, Plus, Trash2, Upload, ChevronDown, ChevronUp, Folder } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -16,8 +42,9 @@ import { PresetDropdown } from '@/components/PresetDropdown'
 import { EditMetadataDialog } from '@/components/EditMetadataDialog'
 import { getTargetFormats, getFileCategory } from '@/lib/formats'
 import { useSettings } from '@/contexts/SettingsContext'
-import { QUALITY_LABELS, QUALITY_VALUES } from '@/lib/settings'
-import type { QualityPreset, OverwriteBehavior } from '@/lib/settings'
+import { useTour } from '@/contexts/TourContext'
+import { QUALITY_LABELS, QUALITY_VALUES, POST_CONVERSION_ACTION_LABELS } from '@/lib/settings'
+import type { QualityPreset, OverwriteBehavior, PostConversionAction } from '@/lib/settings'
 import type { Preset } from '@/lib/presets'
 
 interface ConvertViewProps {
@@ -29,11 +56,13 @@ interface ConvertViewProps {
 
 export default function ConvertView({ files, setFiles, outputDir, setOutputDir }: ConvertViewProps) {
   const { settings } = useSettings()
+  const { startTour, isTourCompleted, activeTour, currentStep, nextStep } = useTour()
   const [isConverting, setIsConverting] = useState(false)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(settings.showAdvancedSettings)
   const [batchQuality, setBatchQuality] = useState<QualityPreset | null>(null) // null = use global setting
   const [batchOverwrite, setBatchOverwrite] = useState<OverwriteBehavior | null>(null)
+  const [postConversionAction, setPostConversionAction] = useState<PostConversionAction>(settings.postConversionAction)
   const [imageOptions, setImageOptions] = useState<ImageOptimizationOptions | undefined>(undefined)
   const [mediaOptions, setMediaOptions] = useState<MediaOptimizationOptions | undefined>(undefined)
   const [alertDialog, setAlertDialog] = useState<{ open: boolean; title: string; description: string } | null>(null)
@@ -68,6 +97,21 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
       setOutputDir(settings.defaultOutputDir)
     }
   }, [outputDir, settings.defaultOutputDir, setOutputDir])
+
+  // Auto-set output directory during tour to ensure conversion can proceed
+  useEffect(() => {
+    if (activeTour && !outputDir && files.length > 0) {
+      // If ANY tour is active and no output dir set, use default or home directory
+      if (settings.defaultOutputDir) {
+        console.log('[Tour] Auto-setting output directory from settings:', settings.defaultOutputDir)
+        setOutputDir(settings.defaultOutputDir)
+      } else {
+        // Fallback: use home directory or prompt later
+        console.log('[Tour] No default output dir, will use home directory')
+        setOutputDir('__same_as_source__')
+      }
+    }
+  }, [activeTour, outputDir, files.length, settings.defaultOutputDir, setOutputDir])
 
   const handleFilesAdded = useCallback((newFiles: FileInfo[]) => {
     // Check file count limit
@@ -120,6 +164,27 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
     if (filesToAdd.length === 0) {
       return
     }
+
+    // Detect if files are from examples folder (demo mode)
+    const isFromExamples = filesToAdd.every(f => 
+      f.path.includes('/examples/images') || 
+      f.path.includes('\\examples\\images')
+    )
+
+    // If demo files detected and haven't seen demo, trigger it
+    if (isFromExamples && !isTourCompleted('demo')) {
+      // Set demo output directory
+      window.electronAPI.getDemoOutputPath().then(demoPath => {
+        setOutputDir(demoPath)
+      }).catch(err => {
+        console.error('Failed to get demo output path:', err)
+      })
+
+      // Small delay to let files load, then start tour
+      setTimeout(() => {
+        startTour('demo')
+      }, 1500)
+    }
     
     const convertFiles: ConvertFile[] = filesToAdd.map((f) => {
       const targets = getTargetFormats(f.ext)
@@ -141,7 +206,22 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
       }
     })
     setFiles((prev) => [...prev, ...convertFiles])
-  }, [setFiles, files.length, settings.maxFileCount, settings.maxFileSizeMB])
+
+    // If tour is active and waiting for files (step 2), advance to next step
+    // Wait for format dropdown to be rendered in DOM before advancing
+    if (activeTour === 'welcome' && currentStep === 2) {
+      waitForElement('[data-tour="format-dropdown"]').then((element) => {
+        if (element) {
+          // Element found, wait a bit more for React to finish rendering
+          setTimeout(() => nextStep(), 300)
+        } else {
+          // Element not found after timeout, advance anyway
+          console.warn('Format dropdown not found, advancing tour anyway')
+          setTimeout(() => nextStep(), 100)
+        }
+      })
+    }
+  }, [setFiles, files.length, settings.maxFileCount, settings.maxFileSizeMB, activeTour, currentStep, nextStep])
 
   const handleRemoveFile = useCallback((id: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== id))
@@ -151,7 +231,12 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
     setFiles((prev) =>
       prev.map((f) => (f.id === id ? { ...f, targetFormat: format } : f))
     )
-  }, [setFiles])
+    
+    // If tour is active and waiting for format change (step 3), advance to next step
+    if (activeTour === 'welcome' && currentStep === 3) {
+      setTimeout(() => nextStep(), 500)
+    }
+  }, [setFiles, activeTour, currentStep, nextStep])
 
   const handleReconvert = useCallback((id: string) => {
     setFiles((prev) =>
@@ -272,6 +357,11 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
 
     setIsConverting(true)
 
+    // If tour is active and waiting for convert (step 4), advance to next step
+    if (activeTour === 'welcome' && currentStep === 4) {
+      setTimeout(() => nextStep(), 500)
+    }
+
     // Determine quality settings
     const qualityPreset = batchQuality ?? settings.conversionQuality
     const quality = QUALITY_VALUES[qualityPreset]
@@ -308,11 +398,25 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
       const response = await window.electronAPI.convertFiles(payload)
       console.log('[ConvertView] Conversion response:', response)
 
-      // Auto-open folder if setting is enabled and at least one succeeded
-      if (settings.autoOpenFolder && response.results.some((r) => r.success)) {
-        window.electronAPI.showInFolder(
-          response.results.find((r) => r.success)?.outputPath ?? outputDir
-        )
+      // Execute post-conversion action if at least one file succeeded
+      const hasSuccess = response.results.some((r) => r.success)
+      if (hasSuccess) {
+        const successResult = response.results.find((r) => r.success)
+        
+        // Execute the selected post-conversion action
+        if (postConversionAction !== 'none') {
+          await window.electronAPI.executePostConversionAction(
+            postConversionAction,
+            { outputPath: successResult?.outputPath ?? outputDir }
+          )
+        }
+        
+        // Legacy: also respect autoOpenFolder setting for backward compatibility
+        if (settings.autoOpenFolder) {
+          window.electronAPI.showInFolder(
+            successResult?.outputPath ?? outputDir
+          )
+        }
       }
     } catch (err) {
       console.error('Conversion failed:', err)
@@ -327,7 +431,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
     } finally {
       setIsConverting(false)
     }
-  }, [files, outputDir, setFiles, batchQuality, batchOverwrite, settings])
+  }, [files, outputDir, setFiles, batchQuality, batchOverwrite, settings, postConversionAction])
 
   // --- Drag-and-drop handlers ---
   const processDroppedFiles = useCallback(async (e: React.DragEvent) => {
@@ -453,7 +557,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/50 flex-shrink-0">
             {/* Left side: Add More Files/Folder */}
             <div className="flex gap-2">
-              <div className="flex gap-0">
+              <div className="flex gap-0" data-tour="add-files">
                 <Button
                   variant="outline"
                   size="sm"
@@ -562,6 +666,28 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
                         <SelectItem value="rename" className="text-xs">Auto-rename</SelectItem>
                         <SelectItem value="skip" className="text-xs">Skip</SelectItem>
                         <SelectItem value="overwrite" className="text-xs">Overwrite</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Post-conversion action */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-zinc-500">When done:</span>
+                    <Select
+                      value={postConversionAction}
+                      onValueChange={(val) => setPostConversionAction(val as PostConversionAction)}
+                    >
+                      <SelectTrigger className="w-[160px] h-7 text-xs bg-zinc-900 border-zinc-700/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-zinc-700">
+                        {(Object.entries(POST_CONVERSION_ACTION_LABELS) as [PostConversionAction, { label: string; description: string }][]).map(
+                          ([key, { label }]) => (
+                            <SelectItem key={key} value={key} className="text-xs">
+                              {label}
+                            </SelectItem>
+                          )
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -706,6 +832,7 @@ export default function ConvertView({ files, setFiles, outputDir, setOutputDir }
                   {showAdvanced ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
                 </Button>
                 <Button
+                  data-tour="convert-button"
                   onClick={handleConvert}
                   disabled={pendingCount === 0 || isConverting}
                   className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium px-6 shadow-lg shadow-violet-500/20 disabled:opacity-40 disabled:shadow-none transition-all duration-200"

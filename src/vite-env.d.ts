@@ -206,6 +206,12 @@ interface ElectronAPI {
     getAppVersion: () => Promise<string>
     getAppPath: (name: string) => Promise<string | null>
     openExternal: (url: string) => Promise<boolean>
+
+    // Post-conversion actions
+    executePostConversionAction: (action: string, data?: { outputPath?: string }) => Promise<{ success: boolean; error?: string }>
+
+    // Demo support
+    getDemoOutputPath: () => Promise<string>
 }
 
 interface Window {

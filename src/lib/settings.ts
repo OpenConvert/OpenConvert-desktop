@@ -10,11 +10,13 @@ export interface AppSettings {
     showAdvancedSettings: boolean
     maxFileCount: number
     maxFileSizeMB: number
+    postConversionAction: PostConversionAction
 }
 
 export type QualityPreset = 'low' | 'medium' | 'high' | 'lossless'
 export type OverwriteBehavior = 'skip' | 'rename' | 'overwrite'
 export type ThemeOption = 'light' | 'dark' | 'system'
+export type PostConversionAction = 'none' | 'notification' | 'open-folder' | 'shutdown'
 
 export const DEFAULT_SETTINGS: AppSettings = {
     defaultOutputDir: null,
@@ -26,6 +28,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     showAdvancedSettings: false,
     maxFileCount: 100,
     maxFileSizeMB: 500,
+    postConversionAction: 'none',
 }
 
 export const QUALITY_LABELS: Record<QualityPreset, { label: string; description: string }> = {
@@ -52,6 +55,13 @@ export const THEME_LABELS: Record<ThemeOption, string> = {
     light: 'Light',
     dark: 'Dark',
     system: 'System',
+}
+
+export const POST_CONVERSION_ACTION_LABELS: Record<PostConversionAction, { label: string; description: string }> = {
+    none: { label: 'Do Nothing', description: 'No action after conversion' },
+    notification: { label: 'Send Notification', description: 'Show desktop notification when done' },
+    'open-folder': { label: 'Open Folder', description: 'Open output folder when done' },
+    shutdown: { label: 'Turn Off PC', description: 'Shutdown computer when done' },
 }
 
 /** Serialize settings to a flat key-value map for storage */
