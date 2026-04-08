@@ -136,12 +136,13 @@ export async function convertAudio(options: AudioConvertOptions): Promise<Conver
             }
         }
 
-        // Execute FFmpeg conversion
+        // Execute FFmpeg conversion (audioOnly ensures video sources are stripped to audio)
         const result = await executeFFmpeg({
             inputPath: sourcePath,
             outputPath,
             format: targetFormat,
             quality,
+            audioOnly: true,
             onProgress,
             metadata: options.metadata,
         })

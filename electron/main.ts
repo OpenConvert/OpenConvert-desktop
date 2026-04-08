@@ -416,6 +416,27 @@ ipcMain.handle('convert-files', async (_event, payload: ConvertPayload) => {
                 currentOperation: 'Finalizing...',
                 startTime,
             })
+        } else if (category === 'video' && isAudioFormat(file.targetFormat)) {
+            // Video → audio extraction (e.g. MP4 → MP3)
+            result = await convertAudio({
+                sourcePath: file.sourcePath,
+                outputDir: outputDir,
+                targetFormat: file.targetFormat,
+                quality,
+                overwriteBehavior,
+                onProgress: (percent) => {
+                    const elapsed = (Date.now() - startTime) / 1000
+                    const eta = percent > 0 ? Math.round((elapsed / percent) * (100 - percent)) : 0
+                    mainWindow?.webContents.send('conversion-progress', {
+                        fileId: file.fileId,
+                        progress: percent,
+                        status: 'converting',
+                        currentOperation: 'Extracting audio...',
+                        eta,
+                        startTime,
+                    })
+                },
+            })
         } else if (category === 'video' && isVideoFormat(file.sourceExt)) {
             // Video conversion with progress tracking
             result = await convertVideo({
