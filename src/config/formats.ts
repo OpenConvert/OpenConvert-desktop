@@ -177,49 +177,49 @@ export const FORMAT_MAP: Record<string, FormatInfo> = {
     mp4: { 
         category: 'video', 
         label: 'MP4', 
-        targets: ['mkv', 'avi', 'mov', 'webm', 'gif'],
+        targets: ['mkv', 'avi', 'mov', 'webm', 'gif', 'mp3', 'aac', 'wav', 'ogg', 'flac', 'm4a'],
         description: 'MPEG-4 Part 14 - most widely supported video format'
     },
     mkv: { 
         category: 'video', 
         label: 'MKV', 
-        targets: ['mp4', 'avi', 'mov', 'webm'],
+        targets: ['mp4', 'avi', 'mov', 'webm', 'mp3', 'aac', 'wav', 'ogg', 'flac', 'm4a'],
         description: 'Matroska Video - open container format, supports multiple tracks'
     },
     avi: { 
         category: 'video', 
         label: 'AVI', 
-        targets: ['mp4', 'mkv', 'mov', 'webm'],
+        targets: ['mp4', 'mkv', 'mov', 'webm', 'mp3', 'aac', 'wav', 'ogg', 'flac', 'm4a'],
         description: 'Audio Video Interleave - legacy Windows format'
     },
     mov: { 
         category: 'video', 
         label: 'MOV', 
-        targets: ['mp4', 'mkv', 'avi', 'webm'],
+        targets: ['mp4', 'mkv', 'avi', 'webm', 'mp3', 'aac', 'wav', 'ogg', 'flac', 'm4a'],
         description: 'QuickTime Movie - Apple video format'
     },
     webm: { 
         category: 'video', 
         label: 'WebM', 
-        targets: ['mp4', 'mkv', 'avi', 'mov'],
+        targets: ['mp4', 'mkv', 'avi', 'mov', 'mp3', 'aac', 'wav', 'ogg', 'flac', 'm4a'],
         description: 'Web Media - open format optimized for web streaming'
     },
     '3gp': { 
         category: 'video', 
         label: '3GP', 
-        targets: ['mp4', 'mkv', 'avi'],
+        targets: ['mp4', 'mkv', 'avi', 'mp3', 'aac', 'wav'],
         description: '3rd Generation Partnership Project - mobile video format'
     },
     flv: { 
         category: 'video', 
         label: 'FLV', 
-        targets: ['mp4', 'mkv', 'avi', 'webm'],
+        targets: ['mp4', 'mkv', 'avi', 'webm', 'mp3', 'aac', 'wav', 'ogg', 'flac', 'm4a'],
         description: 'Flash Video - legacy web video format'
     },
     wmv: { 
         category: 'video', 
         label: 'WMV', 
-        targets: ['mp4', 'mkv', 'avi', 'webm'],
+        targets: ['mp4', 'mkv', 'avi', 'webm', 'mp3', 'aac', 'wav', 'ogg', 'flac', 'm4a'],
         description: 'Windows Media Video - Microsoft streaming format'
     },
 

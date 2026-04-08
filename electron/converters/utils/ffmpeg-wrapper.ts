@@ -25,6 +25,7 @@ export interface FFmpegConvertOptions {
     outputPath: string
     format: string
     quality: number // 1-100
+    audioOnly?: boolean // Extract audio only 
     onProgress?: (percent: number) => void
     metadata?: Record<string, string> // Custom metadata
 }
@@ -252,8 +253,9 @@ export async function executeFFmpeg(options: FFmpegConvertOptions): Promise<FFmp
     const mediaInfo = await probeMediaFile(options.inputPath)
     const totalDuration = mediaInfo?.duration || 0
 
-    // Determine if this is a video or audio conversion
-    const isVideo = !!(mediaInfo?.videoCodec)
+    // Determine if this is a video or audio conversion.
+    // audioOnly forces audio-only args even when source has a video stream.
+    const isVideo = !!(mediaInfo?.videoCodec) && !options.audioOnly
 
     const args = buildFFmpegArgs({
         inputPath: options.inputPath,
